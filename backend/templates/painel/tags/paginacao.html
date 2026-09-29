@@ -1,0 +1,10 @@
+{% if page_obj and page_obj.has_other_pages %}
+<nav class="flex items-center justify-between border-t border-slate-200 px-4 py-3 text-sm" aria-label="Paginação">
+  <p class="text-slate-500">Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }} · {{ page_obj.paginator.count }} registro{{ page_obj.paginator.count|pluralize }}</p>
+  <div class="flex gap-2">
+    {# {% querystring %} (Django 5.1+) mantém os filtros atuais e troca só o parâmetro "page" #}
+    {% if page_obj.has_previous %}<a class="btn-secundario btn-sm" href="{% querystring page=page_obj.previous_page_number %}">← Anterior</a>{% endif %}
+    {% if page_obj.has_next %}<a class="btn-secundario btn-sm" href="{% querystring page=page_obj.next_page_number %}">Próxima →</a>{% endif %}
+  </div>
+</nav>
+{% endif %}

@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+backend/staticfiles/
+# CSS do painel é gerado pelo Tailwind na subida do container
+backend/static/painel/painel.css
+
+# Front
+frontend/node_modules/
+frontend/dist/
+*.tsbuildinfo
+
+# Diversos
+.env
+.DS_Store
+.idea/
+.vscode/

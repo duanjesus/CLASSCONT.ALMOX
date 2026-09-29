@@ -1,0 +1,46 @@
+{% extends "painel/layout.html" %}
+{% load almox %}
+
+{% block titulo_pagina %}Reposição{% endblock %}
+
+{% block conteudo %}
+<div class="mb-6 flex flex-wrap items-end justify-between gap-4">
+  {% cabecalho "Reposição de estoque" "Materiais cujo disponível (físico − reservado) atingiu o estoque mínimo." %}
+  <button type="button" class="btn-secundario" onclick="window.print()">Imprimir</button>
+</div>
+
+{% if linhas %}
+  {# {% regroup %} agrupa uma lista já ordenada por um atributo: aqui, a categoria #}
+  {% regroup linhas by material.categoria.nome as por_categoria %}
+  <div class="space-y-6">
+    {% for grupo in por_categoria %}
+      <section class="cartao overflow-hidden">
+        <header class="border-b border-slate-200 px-4 py-3"><h2 class="font-semibold">{{ grupo.grouper }}</h2></header>
+        <div class="overflow-x-auto">
+          <table class="tabela">
+            <thead>
+              <tr><th>Material</th><th class="num">Disponível</th><th class="num">Mínimo</th><th class="num">Máximo</th>
+                  <th class="num">Consumo {{ dias_base }} dias</th><th class="num">Cobertura</th><th class="num">Comprar</th></tr>
+            </thead>
+            <tbody>
+              {% for linha in grupo.list %}
+                <tr>
+                  <td><a class="link" href="{% url 'painel:material_detalhe' linha.material.pk %}">{{ linha.material.descricao }}</a></td>
+                  <td class="num font-medium text-red-600">{{ linha.disponivel|numero }}</td>
+                  <td class="num">{{ linha.material.estoque_minimo|numero }}</td>
+                  <td class="num">{{ linha.material.estoque_maximo|numero }}</td>
+                  <td class="num text-slate-500">{{ linha.consumo_periodo|numero }}</td>
+                  <td class="num">{% if linha.cobertura_dias is None %}—{% else %}{{ linha.cobertura_dias }} dia{{ linha.cobertura_dias|pluralize }}{% endif %}</td>
+                  <td class="num font-semibold">{{ linha.sugerida|numero }} {{ linha.material.unidade }}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </section>
+    {% endfor %}
+  </div>
+{% else %}
+  <div class="cartao px-6 py-12 text-center text-sm text-slate-500">Nenhum material no ponto de reposição. 🎉</div>
+{% endif %}
+{% endblock %}

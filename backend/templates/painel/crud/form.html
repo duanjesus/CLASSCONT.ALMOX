@@ -1,0 +1,23 @@
+{% extends "painel/layout.html" %}
+{% load almox %}
+
+{% block titulo_pagina %}{{ titulo }}{% endblock %}
+
+{% block conteudo %}
+<div class="mb-6">
+  <a href="{% url rota_lista %}" class="text-sm text-slate-500 hover:text-marca-700">← {{ titulo }}</a>
+  <div class="mt-2">
+    {% if object %}{% cabecalho "Editar "|add:titulo_singular object|stringformat:"s" %}{% else %}{% cabecalho "Novo "|add:titulo_singular %}{% endif %}
+  </div>
+</div>
+
+<form method="post" class="cartao max-w-3xl p-6" novalidate>
+  {% csrf_token %}
+  {# O layout vem do FORM_RENDERER: templates/painel/form/form.html e campo.html #}
+  {{ form }}
+  <div class="mt-6 flex justify-end gap-3">
+    <a href="{% url rota_lista %}" class="btn-secundario">Cancelar</a>
+    <button type="submit" class="btn-primario">Salvar</button>
+  </div>
+</form>
+{% endblock %}

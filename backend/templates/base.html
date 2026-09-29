@@ -1,0 +1,15 @@
+{% load static %}<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block titulo_pagina %}Almoxarifado{% endblock %} · CLASSCONT.ALMOX</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%231b523e'/%3E%3Cpath d='M8 13l8-5 8 5v11H8z' fill='none' stroke='%23f5b83d' stroke-width='2.4' stroke-linejoin='round'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="{% static 'painel/painel.css' %}">
+  {% block head %}{% endblock %}
+</head>
+<body class="{% block classe_body %}bg-slate-50 text-slate-800 antialiased{% endblock %}">
+  {% block corpo %}{% endblock %}
+  {% block scripts %}{% endblock %}
+</body>
+</html>

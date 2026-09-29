@@ -1,0 +1,13 @@
+{% comment %}
+  Layout de {{ form }} no painel (FORM_RENDERER = painel.formularios.RendererPainel).
+  Contexto dado pelo Django: form, fields [(campo, erros)], hidden_fields, errors (erros gerais).
+{% endcomment %}
+{% if errors %}
+  <div role="alert" class="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+    {% for erro in errors %}<p>{{ erro }}</p>{% endfor %}
+  </div>
+{% endif %}
+<div class="grid gap-4 sm:grid-cols-2">
+  {% for field, errors in fields %}{{ field.as_field_group }}{% endfor %}
+</div>
+{% for field in hidden_fields %}{{ field }}{% endfor %}

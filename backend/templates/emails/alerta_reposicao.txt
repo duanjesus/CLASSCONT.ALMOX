@@ -1,0 +1,5 @@
+{% autoescape off %}Os materiais abaixo atingiram o estoque mínimo depois de um atendimento:
+
+{% for m in materiais %}- {{ m.descricao }}: {{ m.disponivel }} disponível (mínimo {{ m.estoque_minimo }}, máximo {{ m.estoque_maximo }})
+{% endfor %}
+Mensagem automática do CLASSCONT.ALMOX.{% endautoescape %}

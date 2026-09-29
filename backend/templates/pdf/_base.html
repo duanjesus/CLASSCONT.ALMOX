@@ -1,0 +1,41 @@
+{% load almox %}<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <title>{% block titulo %}{% endblock %}</title>
+  <style>
+    /* CSS de impressão para o WeasyPrint (não usa Tailwind: é CSS paginado) */
+    @page {
+      size: A4;
+      margin: 18mm 15mm 20mm;
+      @bottom-center { content: "CLASSCONT.ALMOX · página " counter(page) " de " counter(pages); font-size: 8pt; color: #64748b; }
+    }
+    body { font-family: "DejaVu Sans", sans-serif; font-size: 9.5pt; color: #1e293b; }
+    header { display: flex; justify-content: space-between; border-bottom: 2px solid #1b523e; padding-bottom: 8px; margin-bottom: 14px; }
+    header .orgao { font-size: 8pt; color: #64748b; text-transform: uppercase; letter-spacing: .05em; }
+    h1 { font-size: 15pt; margin: 2px 0 0; color: #0e2a21; }
+    .meta { width: 100%; border-collapse: collapse; margin-bottom: 14px; }
+    .meta td { padding: 4px 6px; border: 1px solid #e2e8f0; vertical-align: top; }
+    .meta .rot { font-size: 7.5pt; color: #64748b; text-transform: uppercase; display: block; }
+    table.itens { width: 100%; border-collapse: collapse; }
+    table.itens th { background: #eefaf5; color: #1b523e; font-size: 7.5pt; text-transform: uppercase; text-align: left; padding: 5px 6px; }
+    table.itens td { padding: 5px 6px; border-bottom: 1px solid #e2e8f0; }
+    table.itens .num { text-align: right; white-space: nowrap; }
+    table.itens .codigo { font-family: "DejaVu Sans Mono", monospace; font-size: 8pt; color: #475569; }
+    table.itens tr.total td { font-weight: bold; border-top: 2px solid #1b523e; border-bottom: none; }
+    .assinaturas { margin-top: 48px; display: flex; gap: 32px; }
+    .assinaturas div { flex: 1; border-top: 1px solid #334155; padding-top: 4px; text-align: center; font-size: 8.5pt; }
+    .nota { margin-top: 18px; font-size: 8pt; color: #64748b; }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <div class="orgao">Secretaria de Administração · Seção de Almoxarifado</div>
+      <h1>{% block titulo_documento %}{% endblock %}</h1>
+    </div>
+    <div style="text-align: right; font-size: 8pt; color: #64748b;">Emitido em<br>{{ emitido_em|date:"d/m/Y H:i" }}</div>
+  </header>
+  {% block conteudo %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,14 @@
+{% extends "painel/crud/lista.html" %}
+{% load almox %}
+
+{# Herda a lista genérica inteira e só preenche o bloco de ações por linha #}
+{% block acoes_linha %}
+  <span class="ml-3">
+    {% url "painel:usuario_ativo" registro.pk as url_ativo %}
+    {% if registro.is_active %}
+      {% botao_post url_ativo "Desativar" confirmar="Desativar o acesso de "|add:registro.nome|add:"? O login é bloqueado na hora." estilo="secundario" %}
+    {% else %}
+      {% botao_post url_ativo "Reativar" estilo="secundario" %}
+    {% endif %}
+  </span>
+{% endblock %}

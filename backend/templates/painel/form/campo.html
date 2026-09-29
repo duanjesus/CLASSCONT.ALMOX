@@ -1,0 +1,13 @@
+{% comment %}Um campo: rótulo, widget, ajuda e erros. Checkbox e textarea ocupam a linha inteira.{% endcomment %}
+{% with tipo=field.widget_type %}
+<div class="{% if tipo == 'checkbox' or tipo == 'textarea' %}sm:col-span-2{% endif %}">
+  {% if tipo == 'checkbox' %}
+    <label class="flex items-center gap-2 text-sm font-medium text-slate-700">{{ field }} {{ field.label }}</label>
+  {% else %}
+    <label for="{{ field.id_for_label }}" class="rotulo">{{ field.label }}{% if field.field.required %} <span class="text-red-500" aria-hidden="true">*</span>{% endif %}</label>
+    {{ field }}
+  {% endif %}
+  {% if field.help_text %}<p class="mt-1 text-xs text-slate-500" id="{{ field.auto_id }}_helptext">{{ field.help_text }}</p>{% endif %}
+  {% for erro in field.errors %}<p class="mt-1 text-xs font-medium text-red-600">{{ erro }}</p>{% endfor %}
+</div>
+{% endwith %}

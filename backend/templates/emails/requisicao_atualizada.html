@@ -1,0 +1,32 @@
+{% extends "emails/_base.html" %}
+{% load almox %}
+
+{% block conteudo %}
+<p>Olá, {% if para_gestor %}gestor(a){% else %}{{ requisicao.requisitante.nome }}{% endif %}.</p>
+<p>
+  A requisição <strong>{{ requisicao.numero }}</strong> ({{ requisicao.setor.sigla }}) agora está
+  <strong>{{ requisicao.get_status_display|lower }}</strong>{% if evento.usuario %} — por {{ evento.usuario.nome }}{% endif %}.
+</p>
+{% if evento.observacao %}
+  <p style="background:#f8fafc;border-left:3px solid #2b7a5c;padding:8px 12px;">{{ evento.observacao }}</p>
+{% endif %}
+
+<table role="presentation" width="100%" cellpadding="6" cellspacing="0" style="border-collapse:collapse;font-size:13px;">
+  <tr style="background:#eefaf5;color:#1b523e;">
+    <th align="left">Material</th><th align="right">Pedida</th><th align="right">Aprovada</th><th align="right">Entregue</th>
+  </tr>
+  {% for item in requisicao.itens.all %}
+    <tr style="border-bottom:1px solid #e2e8f0;">
+      <td>{{ item.material.descricao }}</td>
+      <td align="right">{{ item.quantidade_solicitada }}</td>
+      <td align="right">{{ item.quantidade_aprovada|default_if_none:"—" }}</td>
+      <td align="right">{{ item.quantidade_atendida|default_if_none:"—" }}</td>
+    </tr>
+  {% endfor %}
+</table>
+
+{% if requisicao.status == "ATENDIDA" or requisicao.status == "ATENDIDA_PARCIALMENTE" %}
+  <p>O material está disponível para retirada no almoxarifado. Leve a guia de saída ({{ requisicao.valor_atendido|moeda }}).</p>
+{% endif %}
+<p><a href="{% if para_gestor %}{{ url_painel }}/painel/requisicoes/{{ requisicao.pk }}/{% else %}{{ url_front }}/requisicoes/{{ requisicao.pk }}{% endif %}" style="color:#22664c;font-weight:bold;">Abrir a requisição</a></p>
+{% endblock %}

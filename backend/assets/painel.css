@@ -1,0 +1,46 @@
+/*
+ * CSS do painel (templates Django), compilado pelo Tailwind standalone:
+ *   tailwindcss -i assets/painel.css -o static/painel/painel.css --minify
+ * O Tailwind varre os templates e os .py do painel atrás das classes usadas.
+ */
+@import "tailwindcss";
+
+@source "../templates";
+@source "../painel";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --color-marca-50: #eefaf5;
+  --color-marca-100: #d5f1e4;
+  --color-marca-500: #2b7a5c;
+  --color-marca-600: #22664c;
+  --color-marca-700: #1b523e;
+  --color-marca-900: #0e2a21;
+  --color-destaque: #f5b83d;
+}
+
+/* @utility pode ser reaproveitada com @apply (classes comuns não podem, no Tailwind v4) */
+@utility btn {
+  @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition
+    focus:outline-none focus-visible:ring-2 focus-visible:ring-marca-500 focus-visible:ring-offset-2
+    disabled:cursor-not-allowed disabled:opacity-50;
+}
+
+@layer components {
+  .btn-primario { @apply btn bg-marca-700 text-white shadow-sm hover:bg-marca-600; }
+  .btn-secundario { @apply btn border border-slate-300 bg-white text-slate-700 shadow-sm hover:bg-slate-50; }
+  .btn-perigo { @apply btn bg-red-600 text-white shadow-sm hover:bg-red-700; }
+  .btn-sm { @apply px-3 py-1.5 text-xs; }
+
+  .cartao { @apply rounded-xl border border-slate-200 bg-white shadow-sm; }
+
+  .tabela { @apply min-w-full divide-y divide-slate-200 text-sm; }
+  .tabela thead th { @apply bg-slate-50 px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-slate-500; }
+  .tabela tbody { @apply divide-y divide-slate-100; }
+  .tabela td { @apply px-4 py-2.5 align-middle; }
+  .tabela tbody tr:hover { @apply bg-slate-50/70; }
+  .num { @apply text-right whitespace-nowrap tabular-nums; }
+
+  .link { @apply font-medium text-marca-600 hover:text-marca-700 hover:underline; }
+  .rotulo { @apply mb-1 block text-sm font-medium text-slate-700; }
+}

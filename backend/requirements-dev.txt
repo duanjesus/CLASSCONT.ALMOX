@@ -1,0 +1,8 @@
+-r requirements.txt
+pytest>=8.3
+pytest-django>=4.9
+factory-boy>=3.3
+time-machine>=2.16
+ruff>=0.14
+django-stubs[compatible-mypy]>=5.2.9,<5.3
+djangorestframework-stubs[compatible-mypy]>=3.16.5,<3.17

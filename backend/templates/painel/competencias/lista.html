@@ -1,0 +1,53 @@
+{% extends "painel/layout.html" %}
+{% load almox %}
+
+{% block titulo_pagina %}Fechamento mensal{% endblock %}
+
+{% block conteudo %}
+<div class="mb-6">
+  {% cabecalho "Fechamento mensal" "Um mês fechado não aceita mais lançamentos (nem entradas com data retroativa). Fecha-se em ordem." %}
+</div>
+
+{% if proxima %}
+  <section class="cartao mb-6 p-5">
+    <h2 class="font-semibold">Próximo a fechar: {{ proxima.competencia.nome }}</h2>
+    <dl class="mt-4 grid gap-4 text-sm sm:grid-cols-4">
+      <div><dt class="text-xs uppercase text-slate-500">Entradas</dt><dd class="text-lg font-semibold tabular-nums text-emerald-700">{{ proxima.valor_entradas|moeda }}</dd></div>
+      <div><dt class="text-xs uppercase text-slate-500">Saídas</dt><dd class="text-lg font-semibold tabular-nums">{{ proxima.valor_saidas|moeda }}</dd></div>
+      <div><dt class="text-xs uppercase text-slate-500">Ajustes (líquido)</dt><dd class="text-lg font-semibold tabular-nums">{{ proxima.valor_ajustes|moeda }}</dd></div>
+      <div><dt class="text-xs uppercase text-slate-500">Estoque no fim do mês</dt><dd class="text-lg font-semibold tabular-nums">{{ proxima.valor_estoque|moeda }}</dd></div>
+    </dl>
+    <form method="post" action="{% url 'painel:competencia_fechar' %}" class="mt-5"
+          onsubmit="return confirm('Fechar {{ proxima.competencia.nome|escapejs }}? Não será possível lançar movimentações nesse mês.')">
+      {% csrf_token %}
+      <input type="hidden" name="competencia" value="{{ proxima.competencia }}">
+      <button type="submit" class="btn-primario">Fechar {{ proxima.competencia.nome }}</button>
+    </form>
+    {% if demais_abertas %}
+      <p class="mt-3 text-xs text-slate-500">Depois: {% for c in demais_abertas %}{{ c.nome }}{% if not forloop.last %}, {% endif %}{% endfor %}.</p>
+    {% endif %}
+  </section>
+{% else %}
+  <div class="mb-6 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">Todas as competências encerradas estão fechadas.</div>
+{% endif %}
+
+<div class="cartao overflow-hidden">
+  <table class="tabela">
+    <thead><tr><th>Competência</th><th class="num">Entradas</th><th class="num">Saídas</th><th class="num">Ajustes</th><th class="num">Estoque final</th><th>Fechada por</th></tr></thead>
+    <tbody>
+      {% for f in fechadas %}
+        <tr>
+          <td class="font-medium">{{ f.competencia|competencia|capfirst }}</td>
+          <td class="num">{{ f.valor_entradas|moeda }}</td>
+          <td class="num">{{ f.valor_saidas|moeda }}</td>
+          <td class="num">{{ f.valor_ajustes|moeda }}</td>
+          <td class="num">{{ f.valor_estoque|moeda }}</td>
+          <td class="text-slate-500">{{ f.fechado_por.nome }} em {{ f.fechado_em|date:"d/m/Y H:i" }}</td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="6" class="py-10 text-center text-slate-500">Nenhuma competência fechada ainda.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

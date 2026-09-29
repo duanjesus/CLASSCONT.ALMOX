@@ -1,0 +1,97 @@
+{% extends "painel/layout.html" %}
+{% load almox %}
+
+{% block titulo_pagina %}Requisição {{ requisicao.numero }}{% endblock %}
+
+{% block conteudo %}
+<div class="mb-6">
+  <a href="{% url 'painel:requisicao_lista' %}" class="text-sm text-slate-500 hover:text-marca-700">← Requisições</a>
+  <div class="mt-2 flex flex-wrap items-end justify-between gap-4">
+    <div class="flex items-center gap-3">
+      {% cabecalho "Requisição "|add:requisicao.numero requisicao.setor|stringformat:"s" %}
+      {% badge_status requisicao.status %}
+    </div>
+    <div class="flex flex-wrap gap-2">
+      {% if "guia_pdf" in acoes %}<a class="btn-secundario" href="{% url 'painel:requisicao_guia' requisicao.pk %}" target="_blank">Guia de saída (PDF)</a>{% endif %}
+      {% if "cancelar" in acoes %}
+        {% url "painel:requisicao_cancelar" requisicao.pk as url_cancelar %}
+        {% botao_post url_cancelar "Cancelar requisição" confirmar="Cancelar a requisição e liberar as reservas?" estilo="secundario" %}
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<dl class="cartao mb-6 grid gap-4 p-4 text-sm sm:grid-cols-4">
+  <div><dt class="text-xs uppercase text-slate-500">Requisitante</dt><dd class="font-medium">{{ requisicao.requisitante.nome }}</dd></div>
+  <div><dt class="text-xs uppercase text-slate-500">Matrícula</dt><dd class="font-medium">{{ requisicao.requisitante.matricula }}</dd></div>
+  <div><dt class="text-xs uppercase text-slate-500">Enviada em</dt><dd class="font-medium">{{ requisicao.enviado_em|date:"d/m/Y H:i"|default:"—" }}</dd></div>
+  <div><dt class="text-xs uppercase text-slate-500">Atendida em</dt><dd class="font-medium">{{ requisicao.atendido_em|date:"d/m/Y H:i"|default:"—" }}</dd></div>
+  {% if requisicao.finalidade %}<div class="sm:col-span-4"><dt class="text-xs uppercase text-slate-500">Finalidade</dt><dd>{{ requisicao.finalidade }}</dd></div>{% endif %}
+</dl>
+
+<div class="grid gap-6 lg:grid-cols-[1fr_20rem]">
+  <div class="space-y-6">
+    <section class="cartao overflow-x-auto">
+      {% include "shared/_itens_requisicao.html" with requisicao=requisicao only %}
+    </section>
+
+    {% if atendimento_form %}
+      <section class="cartao p-5">
+        <h2 class="font-semibold">Atender</h2>
+        <p class="mb-4 text-sm text-slate-500">Já vem preenchido com o máximo possível (reserva desta requisição + saldo livre). Reduza se entregar menos. O que não for entregue é liberado.</p>
+        <form method="post" action="{% url 'painel:requisicao_atender' requisicao.pk %}">
+          {% csrf_token %}
+          <ul class="divide-y divide-slate-100">
+            {% for campo in atendimento_form %}
+              <li class="flex items-center justify-between gap-4 py-2 text-sm">
+                <label for="{{ campo.id_for_label }}">{{ campo.label }}</label>
+                <span class="flex items-center gap-2">{{ campo }} <span class="w-16 text-xs text-slate-500">máx. {{ campo.field.max_value }}</span></span>
+              </li>
+            {% endfor %}
+          </ul>
+          <button type="submit" class="btn-primario mt-4">Confirmar entrega e baixar estoque</button>
+        </form>
+      </section>
+    {% endif %}
+
+    {% if recusa_form %}
+      <section class="cartao p-5">
+        <h2 class="font-semibold">{% if requisicao.status == "AGUARDANDO_GESTOR" %}Autorização do gestor{% else %}Avaliação{% endif %}</h2>
+        <p class="mt-1 text-sm text-slate-500">
+          Estimativa desta requisição: <strong>{{ valor_estimado|moeda }}</strong>.
+          Cota do setor: {{ cota.cota|moeda }} · já utilizado: {{ cota.utilizado|moeda }}
+          {% if cota.cota is not None %}({{ cota.percentual_utilizado|percentual }}){% endif %}.
+        </p>
+        <div class="mt-4 grid gap-4 sm:grid-cols-2">
+          <form method="post" action="{% url 'painel:requisicao_aprovar' requisicao.pk %}">
+            {% csrf_token %}
+            <label class="rotulo" for="observacao">Observação (opcional)</label>
+            <textarea id="observacao" name="observacao" rows="3" class="block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"></textarea>
+            <button type="submit" class="btn-primario mt-3 w-full">Autorizar e reservar</button>
+          </form>
+          <form method="post" action="{% url 'painel:requisicao_recusar' requisicao.pk %}" novalidate>
+            {% csrf_token %}
+            <label class="rotulo" for="{{ recusa_form.motivo.id_for_label }}">Motivo da recusa</label>
+            {{ recusa_form.motivo }}
+            <button type="submit" class="btn-perigo mt-3 w-full">Recusar</button>
+          </form>
+        </div>
+      </section>
+    {% endif %}
+  </div>
+
+  <aside class="cartao p-5">
+    <h2 class="mb-4 font-semibold">Histórico</h2>
+    <ol class="relative space-y-5 border-l border-slate-200 pl-5">
+      {% for h in requisicao.historico.all %}
+        <li>
+          <span class="absolute -left-1.5 mt-1.5 h-3 w-3 rounded-full border-2 border-white {% if forloop.last %}bg-marca-600{% else %}bg-slate-300{% endif %}"></span>
+          <p class="text-sm font-medium">{{ h.get_para_status_display }}</p>
+          <p class="text-xs text-slate-500">{{ h.quando|date:"d/m/Y H:i" }} · {{ h.usuario.nome }}</p>
+          {% if h.observacao %}<p class="mt-1 rounded bg-slate-50 px-2 py-1 text-xs text-slate-600">{{ h.observacao }}</p>{% endif %}
+        </li>
+      {% endfor %}
+    </ol>
+  </aside>
+</div>
+{% endblock %}

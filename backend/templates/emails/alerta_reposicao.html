@@ -1,0 +1,11 @@
+{% extends "emails/_base.html" %}
+
+{% block conteudo %}
+<p>Os materiais abaixo atingiram o estoque mínimo depois de um atendimento:</p>
+<ul>
+  {% for m in materiais %}
+    <li><strong>{{ m.descricao }}</strong>: {{ m.disponivel }} disponível (mínimo {{ m.estoque_minimo }}, máximo {{ m.estoque_maximo }})</li>
+  {% endfor %}
+</ul>
+<p><a href="{{ url_painel }}/painel/relatorios/reposicao/" style="color:#22664c;font-weight:bold;">Ver relatório de reposição</a></p>
+{% endblock %}

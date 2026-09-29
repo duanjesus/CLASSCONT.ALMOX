@@ -1,0 +1,32 @@
+{% extends "pdf/_base.html" %}
+{% load almox %}
+
+{% block titulo %}Guia de saída {{ requisicao.numero }}{% endblock %}
+{% block titulo_documento %}Guia de saída de material nº {{ requisicao.numero }}{% endblock %}
+
+{% block conteudo %}
+<table class="meta">
+  <tr>
+    <td><span class="rot">Setor requisitante</span>{{ requisicao.setor.sigla }} – {{ requisicao.setor.nome }}</td>
+    <td><span class="rot">Requisitante</span>{{ requisicao.requisitante.nome }} (mat. {{ requisicao.requisitante.matricula }})</td>
+  </tr>
+  <tr>
+    <td><span class="rot">Situação</span>{{ requisicao.get_status_display }}</td>
+    <td><span class="rot">Entregue em</span>{{ requisicao.atendido_em|date:"d/m/Y H:i" }}{% if atendimento %} por {{ atendimento.usuario.nome }}{% endif %}</td>
+  </tr>
+  {% if requisicao.finalidade %}
+    <tr><td colspan="2"><span class="rot">Finalidade</span>{{ requisicao.finalidade }}</td></tr>
+  {% endif %}
+</table>
+
+{# O mesmo partial da tela do painel #}
+{% include "shared/_itens_requisicao.html" with requisicao=requisicao only %}
+
+{% if atendimento.observacao %}<p class="nota">{{ atendimento.observacao }}</p>{% endif %}
+
+<div class="assinaturas">
+  <div>Entregue por (almoxarifado)</div>
+  <div>Recebido por (setor requisitante)</div>
+</div>
+<p class="nota">Valores pelo custo médio ponderado na data da saída. Documento gerado pelo sistema CLASSCONT.ALMOX.</p>
+{% endblock %}

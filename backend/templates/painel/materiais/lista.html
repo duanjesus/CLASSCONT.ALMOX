@@ -1,0 +1,54 @@
+{% extends "painel/layout.html" %}
+{% load almox %}
+
+{% block titulo_pagina %}Materiais{% endblock %}
+
+{% block conteudo %}
+<div class="mb-6 flex flex-wrap items-end justify-between gap-4">
+  {% cabecalho "Materiais" "Posição de estoque: físico, reservado para requisições aprovadas e disponível." %}
+  <a href="{% url 'painel:material_novo' %}" class="btn-primario">Novo material</a>
+</div>
+
+<form method="get" class="cartao mb-4 grid gap-3 p-4 sm:grid-cols-[1fr_12rem_14rem_auto] sm:items-end">
+  <div><label class="rotulo" for="{{ filtro.busca.id_for_label }}">Busca</label>{{ filtro.busca }}</div>
+  <div><label class="rotulo" for="{{ filtro.categoria.id_for_label }}">Categoria</label>{{ filtro.categoria }}</div>
+  <div><label class="rotulo" for="{{ filtro.situacao.id_for_label }}">Situação</label>{{ filtro.situacao }}</div>
+  <button type="submit" class="btn-secundario">Filtrar</button>
+</form>
+
+<div class="cartao overflow-hidden">
+  <div class="overflow-x-auto">
+    <table class="tabela">
+      <thead>
+        <tr>
+          <th>Código</th><th>Descrição</th><th>Categoria</th>
+          <th class="num">Físico</th><th class="num">Reservado</th><th class="num">Disponível</th>
+          <th class="num">Mín. / Máx.</th><th class="num">Custo médio</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for m in materiais %}
+          <tr>
+            <td class="whitespace-nowrap font-mono text-xs">{{ m.codigo }}</td>
+            <td>
+              <a class="link" href="{% url 'painel:material_detalhe' m.pk %}">{{ m.descricao }}</a>
+              {% if not m.ativo %}<span class="ml-1 text-xs text-slate-400">(inativo)</span>{% endif %}
+            </td>
+            <td class="text-slate-500">{{ m.categoria.nome }}</td>
+            <td class="num">{{ m.quantidade_em_estoque|numero }} <span class="text-xs text-slate-400">{{ m.unidade }}</span></td>
+            <td class="num text-slate-500">{{ m.quantidade_reservada|numero }}</td>
+            <td class="num font-medium {% if m.precisa_repor %}text-red-600{% endif %}">
+              {{ m.disponivel|numero }}{% if m.precisa_repor %} <span title="No ponto de reposição">⚠</span>{% endif %}
+            </td>
+            <td class="num text-slate-500">{{ m.estoque_minimo|numero }} / {{ m.estoque_maximo|numero }}</td>
+            <td class="num">{{ m.custo_medio|moeda }}</td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="8" class="py-10 text-center text-slate-500">Nenhum material encontrado com esses filtros.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% paginacao %}
+</div>
+{% endblock %}

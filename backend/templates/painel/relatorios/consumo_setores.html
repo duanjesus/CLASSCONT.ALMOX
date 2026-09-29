@@ -1,0 +1,47 @@
+{% extends "painel/layout.html" %}
+{% load almox %}
+
+{% block titulo_pagina %}Consumo por setor{% endblock %}
+
+{% block conteudo %}
+<div class="mb-6 flex flex-wrap items-end justify-between gap-4">
+  {% cabecalho "Consumo por setor" "Saídas entregues no mês + requisições aprovadas ainda não entregues, contra a cota mensal." %}
+  <div class="inline-flex items-center rounded-lg border border-slate-300 bg-white text-sm shadow-sm">
+    <a class="px-3 py-2 text-slate-500 hover:text-marca-700" href="?competencia={{ anterior }}" aria-label="Mês anterior">←</a>
+    <span class="min-w-44 border-x border-slate-200 px-3 py-2 text-center font-medium">{{ competencia.nome|capfirst }}</span>
+    {% if proxima %}<a class="px-3 py-2 text-slate-500 hover:text-marca-700" href="?competencia={{ proxima }}" aria-label="Próximo mês">→</a>{% else %}<span class="px-3 py-2 text-slate-300">→</span>{% endif %}
+  </div>
+</div>
+
+<div class="cartao overflow-hidden">
+  <div class="overflow-x-auto">
+    <table class="tabela">
+      <thead><tr><th>Setor</th><th>Chefia</th><th class="num">Cota</th><th class="num">Consumido</th><th class="num">Comprometido</th><th class="w-56">Utilização</th></tr></thead>
+      <tbody>
+        {% for setor, cota in linhas %}
+          <tr>
+            <td><span class="font-medium">{{ setor.sigla }}</span> <span class="text-slate-500">{{ setor.nome }}</span></td>
+            <td class="text-slate-500">{{ setor.chefe|default:"—" }}</td>
+            <td class="num">{% if cota.cota is None %}<span class="text-slate-400">sem limite</span>{% else %}{{ cota.cota|moeda }}{% endif %}</td>
+            <td class="num">{{ cota.consumido|moeda }}</td>
+            <td class="num text-sky-700">{{ cota.comprometido|moeda }}</td>
+            <td>
+              {% if cota.percentual_utilizado is not None %}
+                {% with p=cota.percentual_utilizado %}
+                  <div class="flex items-center gap-2">
+                    <div class="h-2 flex-1 overflow-hidden rounded-full bg-slate-100">
+                      <div class="h-full rounded-full {% if p > 100 %}bg-red-500{% elif p >= 80 %}bg-amber-500{% else %}bg-marca-500{% endif %}"
+                           style="width: {% if p > 100 %}100{% else %}{{ p|floatformat:'0' }}{% endif %}%"></div>
+                    </div>
+                    <span class="w-14 text-right text-xs tabular-nums">{{ p|percentual:0 }}</span>
+                  </div>
+                {% endwith %}
+              {% else %}<span class="text-xs text-slate-400">—</span>{% endif %}
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

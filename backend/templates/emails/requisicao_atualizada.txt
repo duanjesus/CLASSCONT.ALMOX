@@ -1,0 +1,12 @@
+{% load almox %}{% autoescape off %}Olá, {% if para_gestor %}gestor(a){% else %}{{ requisicao.requisitante.nome }}{% endif %}.
+
+A requisição {{ requisicao.numero }} ({{ requisicao.setor.sigla }}) agora está {{ requisicao.get_status_display|lower }}.
+{% if evento.observacao %}
+{{ evento.observacao }}
+{% endif %}
+Itens:
+{% for item in requisicao.itens.all %}- {{ item.material.descricao }}: pedida {{ item.quantidade_solicitada }}, aprovada {{ item.quantidade_aprovada|default_if_none:"—" }}, entregue {{ item.quantidade_atendida|default_if_none:"—" }}
+{% endfor %}
+{% if requisicao.status == "ATENDIDA" or requisicao.status == "ATENDIDA_PARCIALMENTE" %}O material está disponível para retirada no almoxarifado.
+{% endif %}
+Mensagem automática do CLASSCONT.ALMOX.{% endautoescape %}

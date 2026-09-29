@@ -1,0 +1,18 @@
+{# Partial isolado ("with ... only"): só enxerga a variável "linha" #}
+<div class="grid gap-3 rounded-lg sm:grid-cols-[1fr_8rem_10rem]">
+  <div>
+    <label class="sr-only" for="{{ linha.material.id_for_label }}">Material</label>
+    {{ linha.material }}
+    {% for erro in linha.material.errors %}<p class="mt-1 text-xs text-red-600">{{ erro }}</p>{% endfor %}
+  </div>
+  <div>
+    <label class="sr-only" for="{{ linha.quantidade.id_for_label }}">Quantidade</label>
+    {{ linha.quantidade }}
+    {% for erro in linha.quantidade.errors %}<p class="mt-1 text-xs text-red-600">{{ erro }}</p>{% endfor %}
+  </div>
+  <div>
+    <label class="sr-only" for="{{ linha.valor_unitario.id_for_label }}">Valor unitário</label>
+    {{ linha.valor_unitario }}
+    {% for erro in linha.valor_unitario.errors %}<p class="mt-1 text-xs text-red-600">{{ erro }}</p>{% endfor %}
+  </div>
+</div>

@@ -1,0 +1,4 @@
+<form method="post" action="{{ url }}" class="inline"{% if confirmar %} onsubmit="return confirm('{{ confirmar|escapejs }}')"{% endif %}>
+  <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
+  <button type="submit" class="btn-{{ estilo }} btn-sm">{{ rotulo }}</button>
+</form>

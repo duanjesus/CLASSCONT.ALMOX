@@ -1,0 +1,108 @@
+{% extends "painel/layout.html" %}
+{% load almox %}
+
+{% block titulo_pagina %}Início{% endblock %}
+
+{% block conteudo %}
+{# {% with %} guarda um valor calculado para reaproveitar no bloco #}
+{% with total_fila=menu_fila_atendimento %}
+<div class="mb-6 flex flex-wrap items-end justify-between gap-4">
+  {% cabecalho "Visão geral" competencia.nome|capfirst %}
+  <div class="flex gap-2">
+    <a href="{% url 'painel:entrada_nova' %}" class="btn-secundario">Registrar entrada</a>
+    <a href="{% url 'painel:requisicao_lista' %}?status=APROVADA" class="btn-primario">Atender requisições{% if total_fila %} ({{ total_fila }}){% endif %}</a>
+  </div>
+</div>
+
+{% if meses_abertos %}
+  <div class="mb-6 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+    Há {{ meses_abertos|length }} competência{{ meses_abertos|length|pluralize }} encerrada{{ meses_abertos|length|pluralize }} sem fechamento
+    ({% for c in meses_abertos %}{{ c.nome }}{% if not forloop.last %}, {% endif %}{% endfor %}).
+    <a class="font-medium underline" href="{% url 'painel:competencia_lista' %}">Fechar agora</a>
+  </div>
+{% endif %}
+
+<div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+  <div class="cartao p-4">
+    <p class="text-xs font-medium uppercase tracking-wide text-slate-500">Valor em estoque</p>
+    <p class="mt-1 text-2xl font-semibold tabular-nums">{{ valor_estoque|moeda }}</p>
+    <p class="mt-0.5 text-xs text-slate-500">{{ materiais_ativos }} materiais ativos</p>
+  </div>
+  <div class="cartao p-4">
+    <p class="text-xs font-medium uppercase tracking-wide text-slate-500">Entradas no mês</p>
+    <p class="mt-1 text-2xl font-semibold tabular-nums text-emerald-700">{{ resumo.valor_entradas|moeda }}</p>
+  </div>
+  <div class="cartao p-4">
+    <p class="text-xs font-medium uppercase tracking-wide text-slate-500">Saídas no mês</p>
+    <p class="mt-1 text-2xl font-semibold tabular-nums text-slate-900">{{ resumo.valor_saidas|moeda }}</p>
+  </div>
+  <div class="cartao p-4">
+    <p class="text-xs font-medium uppercase tracking-wide text-slate-500">Aguardando atendimento</p>
+    <p class="mt-1 text-2xl font-semibold tabular-nums {% if total_fila %}text-amber-600{% endif %}">{{ total_fila }}</p>
+    <p class="mt-0.5 text-xs text-slate-500">requisiç{{ total_fila|pluralize:"ão,ões" }} aprovada{{ total_fila|pluralize }}</p>
+  </div>
+</div>
+{% endwith %}
+
+<div class="mt-6 grid gap-6 lg:grid-cols-2">
+  <section class="cartao overflow-hidden">
+    <header class="flex items-center justify-between border-b border-slate-200 px-4 py-3">
+      <h2 class="font-semibold">Fila de atendimento</h2>
+      <a class="link text-sm" href="{% url 'painel:requisicao_lista' %}?status=APROVADA">Ver todas</a>
+    </header>
+    <ul class="divide-y divide-slate-100">
+      {% for r in fila %}
+        <li class="flex items-center justify-between gap-3 px-4 py-3 text-sm">
+          <div class="min-w-0">
+            <a class="link" href="{% url 'painel:requisicao_detalhe' r.pk %}">{{ r.numero }}</a>
+            <span class="text-slate-500">· {{ r.setor.sigla }} · {{ r.requisitante.nome }}</span>
+          </div>
+          <span class="shrink-0 text-xs text-slate-500">{{ r.itens.all|length }} ite{{ r.itens.all|length|pluralize:"m,ns" }}</span>
+        </li>
+      {% empty %}
+        <li class="px-4 py-8 text-center text-sm text-slate-500">Nenhuma requisição aguardando entrega.</li>
+      {% endfor %}
+    </ul>
+  </section>
+
+  <section class="cartao overflow-hidden">
+    <header class="flex items-center justify-between border-b border-slate-200 px-4 py-3">
+      <h2 class="font-semibold">No ponto de reposição</h2>
+      <a class="link text-sm" href="{% url 'painel:relatorio_reposicao' %}">Relatório completo</a>
+    </header>
+    <ul class="divide-y divide-slate-100">
+      {% for linha in para_repor %}
+        <li class="flex items-center justify-between gap-3 px-4 py-3 text-sm">
+          <a class="link min-w-0 truncate" href="{% url 'painel:material_detalhe' linha.material.pk %}">{{ linha.material.descricao }}</a>
+          <span class="shrink-0 tabular-nums text-red-600">{{ linha.disponivel|numero }} / mín. {{ linha.material.estoque_minimo|numero }}</span>
+        </li>
+      {% empty %}
+        <li class="px-4 py-8 text-center text-sm text-slate-500">Todos os materiais acima do mínimo.</li>
+      {% endfor %}
+    </ul>
+  </section>
+</div>
+
+<section class="cartao mt-6 overflow-hidden">
+  <header class="border-b border-slate-200 px-4 py-3"><h2 class="font-semibold">Últimas movimentações</h2></header>
+  <div class="overflow-x-auto">
+    <table class="tabela">
+      <thead><tr><th>Data</th><th>Material</th><th>Tipo</th><th class="num">Qtd.</th><th class="num">Valor</th><th>Por</th></tr></thead>
+      <tbody>
+        {% for m in ultimas %}
+          <tr>
+            <td class="whitespace-nowrap">{{ m.data|date:"d/m/Y" }}</td>
+            <td><a class="link" href="{% url 'painel:material_detalhe' m.material_id %}">{{ m.material.descricao }}</a></td>
+            <td>{{ m.get_tipo_display }}</td>
+            <td class="num {% if m.eh_entrada %}text-emerald-700{% else %}text-red-600{% endif %}">{% if m.eh_entrada %}+{% else %}−{% endif %}{{ m.quantidade|numero }}</td>
+            <td class="num">{{ m.valor_total|moeda }}</td>
+            <td class="text-slate-500">{{ m.usuario.nome }}</td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="6" class="py-8 text-center text-slate-500">Nenhuma movimentação ainda.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}

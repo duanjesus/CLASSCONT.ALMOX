@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+
+{% block titulo_pagina %}Acesso negado{% endblock %}
+
+{% block corpo %}
+<div class="flex min-h-screen items-center justify-center px-4">
+  <div class="max-w-md text-center">
+    <p class="text-5xl font-bold text-marca-700">403</p>
+    <h1 class="mt-3 text-xl font-semibold">Acesso negado</h1>
+    <p class="mt-2 text-sm text-slate-500">{{ exception|default:"Seu perfil não permite acessar esta página." }}</p>
+    <a href="/painel/" class="btn-primario mt-6">Voltar ao painel</a>
+  </div>
+</div>
+{% endblock %}

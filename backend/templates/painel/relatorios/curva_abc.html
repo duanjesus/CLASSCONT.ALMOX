@@ -1,0 +1,51 @@
+{% extends "painel/layout.html" %}
+{% load almox %}
+
+{% block titulo_pagina %}Curva ABC{% endblock %}
+
+{% block conteudo %}
+<div class="mb-6">
+  {% cabecalho "Curva ABC do consumo" "Classe A: os poucos materiais que somam 80% do valor consumido. B: até 95%. C: o restante." %}
+</div>
+
+<form method="get" class="cartao mb-6 flex flex-wrap items-end gap-3 p-4">
+  <div><label class="rotulo" for="{{ form.inicio.id_for_label }}">De</label>{{ form.inicio }}</div>
+  <div><label class="rotulo" for="{{ form.fim.id_for_label }}">Até</label>{{ form.fim }}</div>
+  <button type="submit" class="btn-secundario">Aplicar</button>
+  {% for erro in form.non_field_errors %}<p class="w-full text-sm text-red-600">{{ erro }}</p>{% endfor %}
+</form>
+
+<div class="mb-6 grid gap-4 sm:grid-cols-3">
+  {% for r in resumo %}
+    <div class="cartao flex items-center gap-4 p-4">
+      {% badge_abc r.classe %}
+      <div>
+        <p class="text-lg font-semibold tabular-nums">{{ r.valor|moeda }} <span class="text-sm font-normal text-slate-500">({{ r.percentual|percentual }})</span></p>
+        <p class="text-xs text-slate-500">{{ r.itens }} materia{{ r.itens|pluralize:"l,is" }}</p>
+      </div>
+    </div>
+  {% endfor %}
+</div>
+
+<div class="cartao overflow-hidden">
+  <div class="overflow-x-auto">
+    <table class="tabela">
+      <thead><tr><th class="w-12">Classe</th><th>Material</th><th class="num">Valor consumido</th><th class="num">% do total</th><th class="num">% acumulado</th></tr></thead>
+      <tbody>
+        {% for c in itens %}
+          <tr>
+            <td>{% badge_abc c.classe %}</td>
+            <td><a class="link" href="{% url 'painel:material_detalhe' c.item.chave %}">{{ c.item.descricao }}</a></td>
+            <td class="num">{{ c.item.valor|moeda }}</td>
+            <td class="num">{{ c.percentual|percentual }}</td>
+            <td class="num text-slate-500">{{ c.percentual_acumulado|percentual }}</td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="5" class="py-10 text-center text-slate-500">Sem saídas no período de {{ periodo.inicio|date:"d/m/Y" }} a {{ periodo.fim|date:"d/m/Y" }}.</td></tr>
+        {% endfor %}
+      </tbody>
+      {% if itens %}<tfoot><tr class="font-semibold"><td class="px-4 py-3" colspan="2">Total</td><td class="num px-4 py-3">{{ total|moeda }}</td><td colspan="2"></td></tr></tfoot>{% endif %}
+    </table>
+  </div>
+</div>
+{% endblock %}

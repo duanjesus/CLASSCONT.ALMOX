@@ -1,0 +1,37 @@
+{% load almox %}
+{% comment %}
+  Tabela de itens de uma requisição. É o MESMO partial usado na tela do painel
+  e no PDF da guia de saída: {% include "shared/_itens_requisicao.html" with requisicao=r only %}.
+  Com "only", ele não enxerga o resto do contexto: funciona igual nos dois lugares.
+{% endcomment %}
+<table class="tabela itens">
+  <thead>
+    <tr>
+      <th>Material</th>
+      <th class="num">Solicitada</th>
+      <th class="num">Aprovada</th>
+      <th class="num">Atendida</th>
+      <th class="num">Custo unit.</th>
+      <th class="num">Valor</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for item in requisicao.itens.all %}
+      <tr>
+        <td>
+          <span class="codigo">{{ item.material.codigo }}</span> {{ item.material.descricao }}
+        </td>
+        <td class="num">{{ item.quantidade_solicitada|numero }} {{ item.material.unidade }}</td>
+        <td class="num">{{ item.quantidade_aprovada|numero }}</td>
+        <td class="num">{{ item.quantidade_atendida|numero }}</td>
+        <td class="num">{{ item.custo_unitario|moeda }}</td>
+        <td class="num">{{ item.valor_atendido|moeda }}</td>
+      </tr>
+    {% endfor %}
+  </tbody>
+  {% if requisicao.valor_atendido is not None %}
+    <tfoot>
+      <tr class="total"><td colspan="5">Total entregue</td><td class="num">{{ requisicao.valor_atendido|moeda }}</td></tr>
+    </tfoot>
+  {% endif %}
+</table>

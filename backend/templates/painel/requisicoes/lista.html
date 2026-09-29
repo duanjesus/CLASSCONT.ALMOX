@@ -1,0 +1,57 @@
+{% extends "painel/layout.html" %}
+{% load almox %}
+
+{% block titulo_pagina %}Requisições{% endblock %}
+
+{% block conteudo %}
+<div class="mb-6">
+  {% if status_atual == "APROVADA" %}
+    {% cabecalho "Fila de atendimento" "Requisições aprovadas, na ordem de chegada. O saldo delas já está reservado." %}
+  {% elif status_atual == "AGUARDANDO_GESTOR" %}
+    {% cabecalho "Autorizações de cota" "A chefia aprovou, mas o valor passa da cota mensal do setor." %}
+  {% else %}
+    {% cabecalho "Requisições" "Todas as requisições enviadas pelos setores." %}
+  {% endif %}
+</div>
+
+<form method="get" class="cartao mb-4 flex flex-wrap items-end gap-3 p-4">
+  <div>
+    <label class="rotulo" for="status">Status</label>
+    <select id="status" name="status" class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm">
+      <option value="">Todos</option>
+      {% for st in opcoes_status %}<option value="{{ st.value }}"{% if st.value == status_atual %} selected{% endif %}>{{ st.rotulo }}</option>{% endfor %}
+    </select>
+  </div>
+  <div>
+    <label class="rotulo" for="setor">Setor</label>
+    <select id="setor" name="setor" class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm">
+      <option value="">Todos</option>
+      {% for s in setores %}<option value="{{ s.pk }}"{% if s.pk|stringformat:"s" == setor_atual %} selected{% endif %}>{{ s.sigla }}</option>{% endfor %}
+    </select>
+  </div>
+  <button type="submit" class="btn-secundario">Filtrar</button>
+</form>
+
+<div class="cartao overflow-hidden">
+  <div class="overflow-x-auto">
+    <table class="tabela">
+      <thead><tr><th>Número</th><th>Setor</th><th>Requisitante</th><th>Enviada em</th><th class="num">Itens</th><th>Status</th></tr></thead>
+      <tbody>
+        {% for r in requisicoes %}
+          <tr>
+            <td><a class="link" href="{% url 'painel:requisicao_detalhe' r.pk %}">{{ r.numero }}</a></td>
+            <td>{{ r.setor.sigla }}</td>
+            <td>{{ r.requisitante.nome }}</td>
+            <td class="whitespace-nowrap text-slate-500">{{ r.enviado_em|date:"d/m/Y H:i"|default:"—" }}</td>
+            <td class="num">{{ r.itens.all|length }}</td>
+            <td>{% badge_status r.status %}</td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="6" class="py-10 text-center text-slate-500">Nenhuma requisição por aqui.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% paginacao %}
+</div>
+{% endblock %}

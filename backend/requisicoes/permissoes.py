@@ -17,11 +17,12 @@ def eh_requisitante(usuario: Usuario, requisicao: Requisicao) -> bool:
 
 
 def pode_ver(usuario: Usuario, requisicao: Requisicao) -> bool:
-    return (
-        eh_requisitante(usuario, requisicao)
-        or usuario.acessa_painel
-        or usuario.chefia_setor(requisicao.setor_id)
-    )
+    if eh_requisitante(usuario, requisicao):
+        return True
+    # Rascunho é privado: só vira assunto da chefia e do almoxarifado depois de enviado
+    if requisicao.status_enum == Status.RASCUNHO:
+        return False
+    return usuario.acessa_painel or usuario.chefia_setor(requisicao.setor_id)
 
 
 def pode_editar(usuario: Usuario, requisicao: Requisicao) -> bool:

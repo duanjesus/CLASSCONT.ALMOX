@@ -240,3 +240,26 @@ def test_guia_pdf_no_painel(cenario: Cenario) -> None:
     services.atender(r.pk, cenario.almox)
     resposta = logado(cenario.almox).get(reverse("painel:requisicao_guia", args=[r.pk]))
     assert resposta["Content-Type"] == "application/pdf"
+
+
+def test_painel_nao_abre_rascunho(cenario: Cenario) -> None:
+    rascunho = services.criar_requisicao(
+        requisitante=cenario.ana, itens=[services.ItemPedido(cenario.papel.pk, 1)]
+    )
+    assert (
+        logado(cenario.almox).get(reverse("painel:requisicao_detalhe", args=[rascunho.pk])).status_code == 404
+    )
+
+
+def test_gestor_nao_remove_o_proprio_perfil(cenario: Cenario) -> None:
+    dados = {
+        "nome": cenario.gestor.nome,
+        "email": cenario.gestor.email,
+        "matricula": cenario.gestor.matricula,
+        "setor": cenario.gestor.setor_id,
+        "perfil": "SERVIDOR",
+    }
+    resposta = logado(cenario.gestor).post(reverse("painel:usuario_editar", args=[cenario.gestor.pk]), dados)
+    assert "próprio perfil de gestor" in resposta.content.decode()
+    cenario.gestor.refresh_from_db()
+    assert cenario.gestor.eh_gestor

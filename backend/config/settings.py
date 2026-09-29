@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Any
 
 import django_stubs_ext
+from django.core.exceptions import ImproperlyConfigured
 
 # Permite anotar genéricos do Django em tempo de execução (ex.: ModelAdmin[Setor], ListView[Material])
 django_stubs_ext.monkeypatch()
@@ -25,8 +26,10 @@ def env_bool(nome: str, padrao: bool = False) -> bool:
     return env(nome, "1" if padrao else "0").lower() in {"1", "true", "sim", "yes"}
 
 
-SECRET_KEY = env("DJANGO_SECRET_KEY", "dev-inseguro-troque-em-producao-classcont-almox")
 DEBUG = env_bool("DJANGO_DEBUG", True)
+SECRET_KEY = env("DJANGO_SECRET_KEY", "dev-inseguro-troque-em-producao-classcont-almox" if DEBUG else "")
+if not SECRET_KEY:
+    raise ImproperlyConfigured("Defina DJANGO_SECRET_KEY (obrigatória com DEBUG desligado).")
 ALLOWED_HOSTS = env("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1,0.0.0.0,backend").split(",")
 CSRF_TRUSTED_ORIGINS = [
     o for o in env("DJANGO_CSRF_TRUSTED_ORIGINS", "http://localhost:8082").split(",") if o

@@ -149,7 +149,12 @@ class RequisicaoViewSet(
         if escopo == "pendentes":
             qs = base.filter(pk__in=services.pendentes_de_avaliacao(usuario).values("pk"))
         elif escopo == "setor":
-            qs = base if usuario.acessa_painel else base.filter(setor_id__in=usuario.ids_setores_chefiados)
+            visiveis = base.exclude(status=Status.RASCUNHO)  # rascunho é privado do requisitante
+            qs = (
+                visiveis
+                if usuario.acessa_painel
+                else visiveis.filter(setor_id__in=usuario.ids_setores_chefiados)
+            )
         else:
             qs = base.filter(requisitante=usuario)
         if "status" in filtro.validated_data:

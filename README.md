@@ -58,6 +58,7 @@ RASCUNHO → ENVIADA → APROVADA → ATENDIDA | ATENDIDA_PARCIALMENTE
 ```
 - A tabela `TRANSICOES` **é** a regra: o que não está nela é proibido.
 - **Ninguém avalia a própria requisição.** A do chefe (ou de setor sem chefe) sobe para o gestor.
+- **Rascunho é privado**: nem a chefia nem o almoxarifado o veem (API, painel e listagens) até ser enviado.
 - A chefia pode **reduzir** quantidades, nunca aumentar. A recusa exige motivo.
 
 **Reserva e atendimento** (`dominio/atendimento.py`)
@@ -236,9 +237,9 @@ docker compose exec backend python manage.py shell
 
 ## Qualidade
 
-- **146 testes com pytest** (69 unitários e 77 funcionais):
+- **149 testes com pytest** (69 unitários e 80 funcionais):
   - *Unitários* (sem banco): custo médio e arredondamento, todas as transições de status, reserva e atendimento parcial, cota, curva ABC, reposição, competência e fechamento, CNPJ e formatação de dinheiro.
-  - *Funcionais* (PostgreSQL): serviços de estoque (constraint do banco, kardex imutável, fechamento bloqueando lançamento retroativo), fluxo completo de requisições (ninguém avalia a própria, cota → gestor, reserva disputada, e-mails), API (JWT, força bruta, usuário desativado com token válido, 400/403/422, PDF), painel (smoke test de **todas** as telas, permissões por perfil, formset, middleware de erros) e a própria carga de demonstração.
+  - *Funcionais* (PostgreSQL): serviços de estoque (constraint do banco, kardex imutável, fechamento bloqueando lançamento retroativo), fluxo completo de requisições (ninguém avalia a própria, rascunho privado, cota → gestor, reserva disputada, e-mails), API (JWT, força bruta, usuário desativado com token válido, 400/403/422, PDF), painel (smoke test de **todas** as telas, permissões por perfil, formset, middleware de erros) e a própria carga de demonstração.
 - **ruff** (lint + formatação), **mypy** com django-stubs e drf-stubs (**strict** no `dominio/`), `makemigrations --check`.
 - **GitHub Actions**: backend (com Postgres) e frontend (oxlint + build) a cada push.
 
@@ -265,7 +266,7 @@ docker/python/        Dockerfile (Python 3.13, WeasyPrint, Tailwind standalone) 
 ## Roteiro para a entrevista
 
 ### Apresentação em 1 minuto
-> "É o almoxarifado de um órgão público. Os setores pedem material pelo app React, a chefia aprova respeitando uma cota mensal, e o almoxarifado entrega pelo painel em templates Django. O estoque é valorado pelo custo médio ponderado, e todo movimento vai para um kardex imutável. Separei as regras num pacote de Python puro, testado sem banco. Os serviços cuidam de transação e concorrência, e a API e o painel são camadas finas por cima. Tem 146 testes, mypy e ruff, e roda com um `docker compose up`."
+> "É o almoxarifado de um órgão público. Os setores pedem material pelo app React, a chefia aprova respeitando uma cota mensal, e o almoxarifado entrega pelo painel em templates Django. O estoque é valorado pelo custo médio ponderado, e todo movimento vai para um kardex imutável. Separei as regras num pacote de Python puro, testado sem banco. Os serviços cuidam de transação e concorrência, e a API e o painel são camadas finas por cima. Tem 149 testes, mypy e ruff, e roda com um `docker compose up`."
 
 ### Demonstração em 5 minutos
 1. **App como `bruno`**: criar uma requisição com toner e papel, e enviar.

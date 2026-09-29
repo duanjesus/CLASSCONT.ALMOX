@@ -170,3 +170,15 @@ def test_consumo_do_setor_para_a_chefia(cenario: Cenario, api: APIClient) -> Non
 
 def test_documentacao_openapi(db: None, api: APIClient) -> None:
     assert api.get("/api/schema").status_code == 200
+
+
+def test_rascunho_e_privado_do_requisitante(cenario: Cenario, api: APIClient) -> None:
+    rascunho = services.criar_requisicao(
+        requisitante=cenario.ana, itens=[services.ItemPedido(cenario.papel.pk, 1)]
+    )
+    enviada = requisicao_enviada(cenario.bruno, (cenario.papel, 1))
+    entrar(api, cenario.chefe_sti)
+    assert api.get(f"/api/requisicoes/{rascunho.pk}").status_code == 403
+    do_setor = api.get("/api/requisicoes", {"escopo": "setor"}).json()["results"]
+    assert [r["id"] for r in do_setor] == [enviada.pk]
+    assert entrar(APIClient(), cenario.ana).get(f"/api/requisicoes/{rascunho.pk}").status_code == 200

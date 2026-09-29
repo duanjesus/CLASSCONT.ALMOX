@@ -6,7 +6,7 @@ from django.http import HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, redirect
 from django.views import View
 
-from contas.models import Setor, Usuario
+from contas.models import Perfil, Setor, Usuario
 from estoque.models import Categoria, Fornecedor
 from painel.forms import CategoriaForm, FornecedorForm, SetorForm, UsuarioForm, UsuarioNovoForm
 from painel.mixins import GestorMixin
@@ -118,7 +118,11 @@ class UsuarioNovo(UsuarioBase, CrudCriar):
 
 
 class UsuarioEditar(UsuarioBase, CrudEditar):
-    pass
+    def form_valid(self, form: UsuarioForm) -> HttpResponse:
+        if form.instance.pk == self.usuario.pk and form.cleaned_data["perfil"] != Perfil.GESTOR:
+            form.add_error("perfil", "Você não pode remover o próprio perfil de gestor.")
+            return self.form_invalid(form)
+        return super().form_valid(form)
 
 
 class UsuarioAlternarAtivo(GestorMixin, View):

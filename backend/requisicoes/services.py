@@ -63,7 +63,7 @@ def _historico(
     )
 
 
-def _validar_itens(itens: Sequence[ItemPedido]) -> dict[int, Material]:
+def _validar_itens(itens: Sequence[ItemPedido]) -> None:
     if not itens:
         raise RegraNegocioError("Inclua ao menos um material na requisição.")
     ids = [i.material_id for i in itens]
@@ -83,7 +83,6 @@ def _validar_itens(itens: Sequence[ItemPedido]) -> dict[int, Material]:
                 f"{material.descricao}: a quantidade pedida ({item.quantidade}) passa do "
                 f"estoque máximo do material ({material.estoque_maximo})."
             )
-    return materiais
 
 
 def _gravar_itens(requisicao: Requisicao, itens: Sequence[ItemPedido]) -> None:

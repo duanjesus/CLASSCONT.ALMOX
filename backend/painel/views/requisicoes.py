@@ -68,8 +68,11 @@ class RequisicaoDetalhe(PainelMixin, DetailView[Requisicao]):
     context_object_name = "requisicao"
 
     def get_queryset(self) -> QuerySet[Requisicao]:
-        return Requisicao.objects.select_related("setor", "requisitante").prefetch_related(
-            "itens__material", "historico__usuario"
+        # rascunho é privado do servidor: nem pela URL o almoxarifado o vê
+        return (
+            Requisicao.objects.exclude(status=Status.RASCUNHO)
+            .select_related("setor", "requisitante")
+            .prefetch_related("itens__material", "historico__usuario")
         )
 
     def get_context_data(self, **kwargs: Any) -> dict[str, Any]:

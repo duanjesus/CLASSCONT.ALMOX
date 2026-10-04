@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useDeferredValue, useState } from 'react'
+import { useDeferredValue, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { api, mensagemErro } from '../api/client'
 import type { Categoria, ItemPedido, Material, RequisicaoDetalhe } from '../api/types'
@@ -53,10 +53,13 @@ function Formulario({ existente }: { existente?: RequisicaoDetalhe }) {
   const detalhe = (linha: LinhaCarrinho) => porId.get(linha.material.id) ?? linha.material
   const estimativa = carrinho.reduce((soma, l) => soma + l.quantidade * Number(detalhe(l).custo_medio ?? 0), 0)
 
+  // O servidor recusa pedido acima do estoque máximo do material: a tela nem deixa digitar
+  const limitar = (quantidade: number, maximo?: number) => Math.min(maximo || Infinity, Math.max(1, quantidade))
+
   function adicionar(material: Material) {
     setCarrinho((atual) =>
       atual.some((l) => l.material.id === material.id)
-        ? atual.map((l) => (l.material.id === material.id ? { ...l, quantidade: l.quantidade + 1 } : l))
+        ? atual.map((l) => (l.material.id === material.id ? { ...l, quantidade: limitar(l.quantidade + 1, material.estoque_maximo) } : l))
         : [...atual, { material, quantidade: 1 }],
     )
   }
@@ -64,6 +67,8 @@ function Formulario({ existente }: { existente?: RequisicaoDetalhe }) {
     setCarrinho((atual) => atual.map((l) => (l.material.id === materialId ? { ...l, quantidade } : l)))
   const remover = (materialId: number) => setCarrinho((atual) => atual.filter((l) => l.material.id !== materialId))
 
+  // Trava síncrona: um clique duplo chega antes de o React desabilitar o botão
+  const salvando = useRef(false)
   const salvar = useMutation({
     mutationFn: async (enviar: boolean) => {
       const corpo = {
@@ -83,7 +88,16 @@ function Formulario({ existente }: { existente?: RequisicaoDetalhe }) {
       navigate(`/requisicoes/${data.id}`)
     },
     onError: (e) => setErro(mensagemErro(e)),
+    onSettled: () => {
+      salvando.current = false
+    },
   })
+  function acionar(enviar: boolean) {
+    if (salvando.current) return
+    salvando.current = true
+    setErro(null)
+    salvar.mutate(enviar)
+  }
 
   return (
     <>
@@ -161,9 +175,12 @@ function Formulario({ existente }: { existente?: RequisicaoDetalhe }) {
                         aria-label={`Quantidade de ${m.descricao}`}
                         className={classeQuantidade}
                         value={linha.quantidade}
-                        onChange={(e) => alterar(linha.material.id, Math.max(1, Number(e.target.value) || 1))}
+                        onChange={(e) => alterar(linha.material.id, limitar(Number(e.target.value) || 1, m.estoque_maximo))}
                       />
-                      <span className="text-xs text-slate-500">{m.unidade}</span>
+                      <span className="text-xs text-slate-500">
+                        {m.unidade}
+                        {m.estoque_maximo ? ` · máx. ${m.estoque_maximo}` : ''}
+                      </span>
                       <span className="ml-auto text-xs tabular-nums text-slate-500">{formatarMoeda(linha.quantidade * Number(m.custo_medio ?? 0))}</span>
                     </div>
                     {acimaDoDisponivel && (
@@ -194,10 +211,10 @@ function Formulario({ existente }: { existente?: RequisicaoDetalhe }) {
           {erro && <div className="mt-4"><Alerta>{erro}</Alerta></div>}
 
           <div className="mt-4 grid gap-2">
-            <Botao disabled={!carrinho.length} carregando={salvar.isPending && salvar.variables === true} onClick={() => { setErro(null); salvar.mutate(true) }}>
+            <Botao disabled={!carrinho.length || salvar.isPending} carregando={salvar.isPending && salvar.variables === true} onClick={() => acionar(true)}>
               Enviar para aprovação
             </Botao>
-            <Botao variante="secundario" disabled={!carrinho.length} carregando={salvar.isPending && salvar.variables === false} onClick={() => { setErro(null); salvar.mutate(false) }}>
+            <Botao variante="secundario" disabled={!carrinho.length || salvar.isPending} carregando={salvar.isPending && salvar.variables === false} onClick={() => acionar(false)}>
               Salvar rascunho
             </Botao>
             {editando && <Link to={`/requisicoes/${id}`} className="text-center text-sm text-slate-500 hover:underline">Cancelar edição</Link>}

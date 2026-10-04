@@ -169,6 +169,21 @@ def test_atender_pelo_painel(cenario: Cenario) -> None:
     assert Requisicao.objects.get(pk=r.pk).status == Status.ATENDIDA_PARCIALMENTE
 
 
+def test_requisicao_aprovada_sem_saldo_avisa_em_vez_de_oferecer_o_formulario(cenario: Cenario) -> None:
+    requisicao_aprovada(cenario.ana, cenario.gestor, (cenario.papel, 50))  # reserva todo o papel
+    sem_saldo = requisicao_aprovada(cenario.bruno, cenario.gestor, (cenario.papel, 1))
+    pagina = (
+        logado(cenario.almox).get(reverse("painel:requisicao_detalhe", args=[sem_saldo.pk])).content.decode()
+    )
+    assert "Sem saldo para atender agora" in pagina
+    assert "Confirmar entrega" not in pagina
+
+
+def test_formularios_do_painel_travam_o_segundo_envio(cenario: Cenario) -> None:
+    pagina = logado(cenario.almox).get(reverse("painel:dashboard")).content.decode()
+    assert "form.dataset.enviando" in pagina
+
+
 def test_erro_de_regra_vira_mensagem_e_volta_para_a_pagina(cenario: Cenario) -> None:
     r = requisicao_enviada(cenario.ana, (cenario.papel, 1))  # ainda não aprovada
     detalhe = reverse("painel:requisicao_detalhe", args=[r.pk])

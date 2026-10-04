@@ -10,6 +10,25 @@
 </head>
 <body class="{% block classe_body %}bg-slate-50 text-slate-800 antialiased{% endblock %}">
   {% block corpo %}{% endblock %}
+  <script>
+    // Clique duplo não envia o formulário duas vezes: o segundo envio é barrado e os
+    // botões travam. (Se um confirm() cancelou o envio, nada é travado.)
+    document.addEventListener('submit', (evento) => {
+      const form = evento.target
+      if (form.method !== 'post' || evento.defaultPrevented) return
+      if (form.dataset.enviando) return evento.preventDefault()
+      form.dataset.enviando = '1'
+      // Depois do envio sair: um botão desabilitado antes não entraria nos dados do POST
+      setTimeout(() => form.querySelectorAll('button[type="submit"]').forEach((b) => (b.disabled = true)))
+    })
+    // Voltar no navegador restaura a página do cache: destrava
+    window.addEventListener('pageshow', () => {
+      document.querySelectorAll('form[data-enviando]').forEach((form) => {
+        delete form.dataset.enviando
+        form.querySelectorAll('button[type="submit"]').forEach((b) => (b.disabled = false))
+      })
+    })
+  </script>
   {% block scripts %}{% endblock %}
 </body>
 </html>

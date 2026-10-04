@@ -81,7 +81,11 @@ class RequisicaoDetalhe(PainelMixin, DetailView[Requisicao]):
         acoes = acoes_do_usuario(self.usuario, requisicao)
         contexto["acoes"] = acoes
         if "atender" in acoes:
-            contexto["atendimento_form"] = AtendimentoForm(itens=_itens_para_atender(requisicao))
+            itens = _itens_para_atender(requisicao)
+            if any(maximo for _, _, maximo in itens):
+                contexto["atendimento_form"] = AtendimentoForm(itens=itens)
+            else:
+                contexto["sem_saldo"] = True
         if "recusar" in acoes:
             contexto["recusa_form"] = RecusaForm()
             contexto["cota"] = services.situacao_cota(

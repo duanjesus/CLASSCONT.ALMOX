@@ -17,7 +17,7 @@ export function MinhasRequisicoes() {
   const [status, setStatus] = useState<StatusRequisicao | ''>('')
   const [pagina, setPagina] = useState(1)
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isPlaceholderData } = useQuery({
     queryKey: ['requisicoes', escopo, status, pagina],
     placeholderData: keepPreviousData,
     queryFn: async () =>
@@ -95,8 +95,8 @@ export function MinhasRequisicoes() {
           <div className="flex items-center justify-between border-t border-slate-200 px-4 py-3 text-sm">
             <span className="text-slate-500">Página {pagina} de {totalPaginas} · {data.count} requisições</span>
             <div className="flex gap-2">
-              <Botao variante="secundario" disabled={!data.previous} onClick={() => setPagina((p) => p - 1)}>← Anterior</Botao>
-              <Botao variante="secundario" disabled={!data.next} onClick={() => setPagina((p) => p + 1)}>Próxima →</Botao>
+              <Botao variante="secundario" disabled={isPlaceholderData || !data.previous} onClick={() => setPagina((p) => p - 1)}>← Anterior</Botao>
+              <Botao variante="secundario" disabled={isPlaceholderData || !data.next} onClick={() => setPagina((p) => p + 1)}>Próxima →</Botao>
             </div>
           </div>
         )}

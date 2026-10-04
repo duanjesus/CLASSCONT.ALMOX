@@ -101,8 +101,12 @@ def test_estouro_de_cota_sobe_para_o_gestor_sem_reservar(cenario: Cenario) -> No
     cenario.recarregar()
     assert cenario.toner.quantidade_reservada == 0
 
-    with pytest.raises(AcessoNegadoError):
-        services.aprovar(r.pk, cenario.chefe_sof)  # a chefia não autoriza o próprio estouro
+    # a chefia não autoriza o próprio estouro, e a mensagem diz de quem é a vez
+    # (é o que vê quem ainda está com a tela de avaliação aberta)
+    with pytest.raises(AcessoNegadoError, match="só o gestor pode autorizar"):
+        services.aprovar(r.pk, cenario.chefe_sof)
+    with pytest.raises(AcessoNegadoError, match="só o gestor pode autorizar"):
+        services.recusar(r.pk, cenario.chefe_sof, "Mudei de ideia.")
     assert services.aprovar(r.pk, cenario.gestor).status == Status.APROVADA
     cenario.recarregar()
     assert cenario.toner.quantidade_reservada == 1

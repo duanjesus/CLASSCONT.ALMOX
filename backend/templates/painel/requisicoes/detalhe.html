@@ -54,6 +54,14 @@
       </section>
     {% endif %}
 
+    {% if sem_saldo %}
+      <section class="cartao border-amber-200 bg-amber-50 p-5 text-sm text-amber-900">
+        <h2 class="font-semibold">Sem saldo para atender agora</h2>
+        <p class="mt-1">Nenhum item desta requisição tem saldo disponível. Ela continua na fila: registre a
+          <a class="link" href="{% url 'painel:entrada_nova' %}">entrada do material</a> ou cancele a requisição.</p>
+      </section>
+    {% endif %}
+
     {% if recusa_form %}
       <section class="cartao p-5">
         <h2 class="font-semibold">{% if requisicao.status == "AGUARDANDO_GESTOR" %}Autorização do gestor{% else %}Avaliação{% endif %}</h2>

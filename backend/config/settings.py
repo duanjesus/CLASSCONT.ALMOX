@@ -96,7 +96,11 @@ DATABASES = {
         "PASSWORD": env("POSTGRES_PASSWORD", "almox"),
         "HOST": env("POSTGRES_HOST", "localhost"),
         "PORT": env("POSTGRES_PORT", "5434"),
-        "CONN_MAX_AGE": 60,
+        # Pool de conexões (Django 5.1+ com psycopg 3): as requisições pegam uma conexão pronta
+        # e a devolvem ao terminar. Com conexão persistente por thread (CONN_MAX_AGE), cada cliente
+        # HTTP em keep-alive segurava a sua, e com ~100 usuários o PostgreSQL recusava novas
+        # ("too many clients already"); sem persistência nenhuma, a vazão caía ~30%.
+        "OPTIONS": {"pool": {"min_size": 2, "max_size": int(env("DJANGO_DB_POOL_MAX", "20"))}},
     }
 }
 

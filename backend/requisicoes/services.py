@@ -182,6 +182,21 @@ def pendentes_de_avaliacao(usuario: Usuario) -> QuerySet[Requisicao]:
     return Requisicao.objects.filter(condicao).exclude(requisitante=usuario)
 
 
+def _exigir_avaliador(usuario: Usuario, requisicao: Requisicao) -> None:
+    if pode_avaliar(usuario, requisicao):
+        return
+    # A chefia já aprovou e a cota estourou: quem ainda está com a tela antiga aberta
+    # precisa saber que a vez agora é do gestor, não que "avaliou a própria".
+    if requisicao.status_enum == Status.AGUARDANDO_GESTOR and not usuario.eh_gestor:
+        raise AcessoNegadoError(
+            "A chefia já aprovou esta requisição e ela passou da cota do setor: "
+            "agora só o gestor pode autorizar ou recusar."
+        )
+    raise AcessoNegadoError(
+        "Esta requisição é avaliada pela chefia do setor ou pelo gestor, e ninguém avalia a própria."
+    )
+
+
 @transaction.atomic
 def aprovar(
     requisicao_id: int,
@@ -194,10 +209,7 @@ def aprovar(
     requisicao = _travar(requisicao_id)
     status = requisicao.status_enum
     transicionar(status, Acao.APROVAR)  # valida o status antes de tudo
-    if not pode_avaliar(usuario, requisicao):
-        raise AcessoNegadoError(
-            "Esta requisição é avaliada pela chefia do setor ou pelo gestor, e ninguém avalia a própria."
-        )
+    _exigir_avaliador(usuario, requisicao)
 
     itens = list(requisicao.itens.select_related("material").order_by("material_id"))
     aprovadas = validar_quantidades_aprovadas({i.pk: i.quantidade_vigente for i in itens}, quantidades or {})
@@ -245,10 +257,7 @@ def recusar(requisicao_id: int, usuario: Usuario, motivo: str, agora: datetime |
     requisicao = _travar(requisicao_id)
     status = requisicao.status_enum
     novo = transicionar(status, Acao.RECUSAR)
-    if not pode_avaliar(usuario, requisicao):
-        raise AcessoNegadoError(
-            "Esta requisição é avaliada pela chefia do setor ou pelo gestor, e ninguém avalia a própria."
-        )
+    _exigir_avaliador(usuario, requisicao)
     motivo = motivo.strip()
     if len(motivo) < 5:
         raise RegraNegocioError("A recusa exige um motivo.")

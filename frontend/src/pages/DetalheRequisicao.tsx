@@ -40,7 +40,12 @@ export function DetalheRequisicao() {
       setRecusando(false)
       setErro(null)
     },
-    onError: (e) => setErro(mensagemErro(e)),
+    onError: (e) => {
+      setErro(mensagemErro(e))
+      // A recusa costuma vir de tela desatualizada (outra pessoa agiu antes): busca o estado atual
+      queryClient.invalidateQueries({ queryKey: ['requisicao', id] })
+      queryClient.invalidateQueries({ queryKey: ['requisicoes'] })
+    },
   })
 
   if (isLoading) return <Carregando />
@@ -83,6 +88,7 @@ export function DetalheRequisicao() {
             {r.acoes.includes('cancelar') && (
               <Botao
                 variante="fantasma"
+                disabled={acao.isPending}
                 carregando={acao.isPending && acao.variables?.caminho === 'cancelar'}
                 onClick={() => window.confirm('Cancelar esta requisição?') && acao.mutate({ caminho: 'cancelar' })}
               >
@@ -90,7 +96,7 @@ export function DetalheRequisicao() {
               </Botao>
             )}
             {r.acoes.includes('enviar') && (
-              <Botao carregando={acao.isPending && acao.variables?.caminho === 'enviar'} onClick={() => acao.mutate({ caminho: 'enviar' })}>
+              <Botao disabled={acao.isPending} carregando={acao.isPending && acao.variables?.caminho === 'enviar'} onClick={() => acao.mutate({ caminho: 'enviar' })}>
                 Enviar para aprovação
               </Botao>
             )}
@@ -171,8 +177,8 @@ export function DetalheRequisicao() {
                   <label htmlFor="observacao" className={classeRotulo}>Observação (opcional)</label>
                   <textarea id="observacao" rows={2} className={classeCampo} value={observacao} onChange={(e) => setObservacao(e.target.value)} />
                   <div className="mt-4 flex flex-wrap gap-3">
-                    <Botao carregando={acao.isPending && acao.variables?.caminho === 'aprovar'} onClick={aprovar}>Aprovar</Botao>
-                    <Botao variante="secundario" onClick={() => setRecusando(true)}>Recusar…</Botao>
+                    <Botao disabled={acao.isPending} carregando={acao.isPending && acao.variables?.caminho === 'aprovar'} onClick={aprovar}>Aprovar</Botao>
+                    <Botao variante="secundario" disabled={acao.isPending} onClick={() => setRecusando(true)}>Recusar…</Botao>
                   </div>
                 </>
               ) : (
@@ -182,7 +188,7 @@ export function DetalheRequisicao() {
                   <div className="mt-4 flex flex-wrap gap-3">
                     <Botao
                       variante="perigo"
-                      disabled={motivo.trim().length < 5}
+                      disabled={motivo.trim().length < 5 || acao.isPending}
                       carregando={acao.isPending && acao.variables?.caminho === 'recusar'}
                       onClick={() => acao.mutate({ caminho: 'recusar', corpo: { motivo } })}
                     >

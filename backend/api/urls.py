@@ -1,7 +1,7 @@
 from django.urls import include, path
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 from rest_framework.routers import DefaultRouter
-from rest_framework_simplejwt.views import TokenRefreshView
+from rest_framework_simplejwt.views import TokenBlacklistView, TokenRefreshView
 
 from api import views
 
@@ -13,6 +13,7 @@ router.register("requisicoes", views.RequisicaoViewSet, basename="requisicao")
 urlpatterns = [
     path("auth/login", views.LoginView.as_view(), name="api-login"),
     path("auth/refresh", TokenRefreshView.as_view(), name="api-refresh"),
+    path("auth/logout", TokenBlacklistView.as_view(), name="api-logout"),
     path("me", views.MeView.as_view(), name="api-me"),
     path("resumo", views.ResumoView.as_view(), name="api-resumo"),
     path("setores/<int:pk>/consumo", views.ConsumoSetorView.as_view(), name="api-consumo-setor"),

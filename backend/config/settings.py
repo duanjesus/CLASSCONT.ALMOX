@@ -45,6 +45,7 @@ INSTALLED_APPS = [
     # Necessário para o FORM_RENDERER TemplatesSetting achar os templates padrão de formulário
     "django.forms",
     "rest_framework",
+    "rest_framework_simplejwt.token_blacklist",
     "django_filters",
     "drf_spectacular",
     "contas",
@@ -148,8 +149,12 @@ REST_FRAMEWORK = {
 }
 
 SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(hours=8),
-    "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
+    # Access curto + refresh com rotação: a cada renovação o refresh antigo vai para a
+    # blacklist. Um refresh roubado e reutilizado é recusado, e o logout invalida a sessão.
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=15),
+    "REFRESH_TOKEN_LIFETIME": timedelta(hours=12),
+    "ROTATE_REFRESH_TOKENS": True,
+    "BLACKLIST_AFTER_ROTATION": True,
     "AUTH_HEADER_TYPES": ("Bearer",),
     "UPDATE_LAST_LOGIN": True,
 }

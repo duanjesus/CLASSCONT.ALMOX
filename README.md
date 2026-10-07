@@ -46,7 +46,7 @@ novo_custo = (qtd_atual × custo_atual + qtd_entrada × custo_entrada) / (qtd_at
 - Dinheiro é `Decimal`, nunca `float`: 2 casas para reais e **4 casas para o custo unitário**, para não acumular erro de arredondamento.
 
 **Kardex** (`estoque/models.py → Movimentacao`)
-- É a **fonte da verdade** do estoque. Movimentações são **imutáveis**: `save()` numa linha existente e `delete()` levantam erro. Corrige-se com um lançamento de ajuste.
+- É a **fonte da verdade** do estoque. Movimentações são **imutáveis** em duas camadas: no model, `save()` numa linha existente e `delete()` levantam erro; no banco, um **trigger** recusa qualquer `UPDATE` ou `DELETE` na tabela, mesmo em SQL direto ou `QuerySet.update()`. Corrige-se com um lançamento de ajuste.
 - O saldo gravado no `Material` é um *cache* atualizado na **mesma transação** que grava o kardex. O comando `conferir_saldos` compara os dois (usa `DISTINCT ON`, que é do PostgreSQL).
 - O banco também protege: `CHECK (quantidade_em_estoque >= 0)`, NF única por fornecedor, material único por requisição.
 
@@ -91,8 +91,8 @@ RASCUNHO → ENVIADA → APROVADA → ATENDIDA | ATENDIDA_PARCIALMENTE
 | Gestor | `perfil = GESTOR` | tudo do almoxarife, mais autorizar estouro de cota, setores, cotas, usuários e fechamento mensal |
 
 **Segurança**
-- JWT *stateless* na API e sessão + CSRF no painel.
-- **Desativar um usuário corta o acesso na hora**, inclusive com um JWT já emitido: o SimpleJWT confere `is_active` a cada requisição. Usuários não são excluídos, porque há histórico ligado a eles.
+- JWT na API e sessão + CSRF no painel. O access dura 15 minutos e o **refresh é rotativo**: cada renovação entrega um refresh novo e manda o anterior para a blacklist, então um refresh reutilizado é recusado. O logout invalida o refresh no servidor, e o front renova o acesso sozinho quando recebe 401.
+- **Desativar um usuário corta o acesso na hora**, inclusive com um JWT já emitido: o SimpleJWT confere `is_active` a cada requisição e também na renovação do token. Usuários não são excluídos, porque há histórico ligado a eles.
 - **Força bruta:** 5 tentativas erradas por e-mail + IP a cada minuto, na API e no painel (`contas/limitador.py`).
 - API: regra de negócio → **422** com mensagem, permissão → **403**, validação → **400** com o campo (`itens[0].quantidade`). Qualquer outro erro → **500 sem detalhes internos**.
 
@@ -158,9 +158,10 @@ docker compose exec backend python manage.py shell
 
 ## Qualidade
 
-- **149 testes com pytest** (69 unitários e 80 funcionais):
+- **160 testes com pytest** (69 unitários e 91 funcionais):
   - *Unitários* (sem banco): custo médio e arredondamento, todas as transições de status, reserva e atendimento parcial, cota, curva ABC, reposição, competência e fechamento, CNPJ e formatação de dinheiro.
-  - *Funcionais* (PostgreSQL): serviços de estoque (constraint do banco, kardex imutável, fechamento bloqueando lançamento retroativo), fluxo completo de requisições (ninguém avalia a própria, rascunho privado, cota → gestor, reserva disputada, e-mails), API (JWT, força bruta, usuário desativado com token válido, 400/403/422, PDF), painel (smoke test de **todas** as telas, permissões por perfil, formset, middleware de erros) e a própria carga de demonstração.
+  - *Funcionais* (PostgreSQL): serviços de estoque (constraint do banco, kardex imutável, fechamento bloqueando lançamento retroativo), fluxo completo de requisições (ninguém avalia a própria, rascunho privado, cota → gestor, reserva disputada, e-mails), API (JWT, refresh rotativo e logout, força bruta, usuário desativado com token válido, 400/403/422, PDF), painel (smoke test de **todas** as telas, permissões por perfil, formset, middleware de erros) e a própria carga de demonstração.
+  - *Concorrência* (threads com conexões reais, sem a transação do teste): aprovações simultâneas nunca reservam mais que o estoque, a mesma requisição atendida duas vezes só baixa o estoque uma, atendimentos paralelos fecham a conta no kardex e a mesma nota fiscal lançada duas vezes entra uma só.
 - **ruff** (lint + formatação), **mypy** com django-stubs e drf-stubs (**strict** no `dominio/`), `makemigrations --check`.
 - **GitHub Actions**: backend (com Postgres) e frontend (oxlint + build) a cada push.
 
@@ -208,4 +209,4 @@ Com os usuários de demonstração (senha `senha123`):
 
 ## O que falta para produção
 
-Gunicorn + Nginx com `collectstatic`, Redis para o cache do limitador (o `LocMemCache` é por processo), filas (Celery ou RQ) para e-mail e PDF, *refresh token* com rotação e blacklist, auditoria com `django-simple-history` nos cadastros, e trigger no banco garantindo a imutabilidade do kardex (o `save()` protege o ORM, mas não um `UPDATE` direto).
+Gunicorn + Nginx com `collectstatic`, Redis para o cache do limitador (o `LocMemCache` é por processo), filas (Celery ou RQ) para e-mail e PDF, refresh token em cookie `HttpOnly` (hoje fica no `localStorage`, exposto a XSS), limpeza periódica da blacklist (`flushexpiredtokens`) e auditoria com `django-simple-history` nos cadastros.

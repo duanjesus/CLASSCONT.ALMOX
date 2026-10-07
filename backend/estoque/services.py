@@ -14,7 +14,7 @@ from dataclasses import dataclass
 from datetime import date, datetime
 from decimal import Decimal
 
-from django.db import transaction
+from django.db import IntegrityError, transaction
 from django.db.models import Case, DecimalField, F, Sum, When
 from django.utils import timezone
 
@@ -87,17 +87,24 @@ def registrar_entrada(
     if len(set(ids)) != len(ids):
         raise RegraNegocioError("O mesmo material aparece mais de uma vez na nota: some as quantidades.")
     numero_nota = numero_nota.strip()
+    duplicada = RegraNegocioError(f"A nota fiscal {numero_nota} deste fornecedor já foi registrada.")
     if Entrada.objects.filter(fornecedor=fornecedor, numero_nota=numero_nota).exists():
-        raise RegraNegocioError(f"A nota fiscal {numero_nota} deste fornecedor já foi registrada.")
+        raise duplicada
 
-    entrada = Entrada.objects.create(
-        fornecedor=fornecedor,
-        numero_nota=numero_nota,
-        data_recebimento=data_recebimento,
-        empenho=empenho.strip(),
-        observacao=observacao.strip(),
-        registrado_por=usuario,
-    )
+    try:
+        # Savepoint: dois lançamentos simultâneos da mesma NF passam juntos pela checagem acima;
+        # quem decide é a constraint única do banco, e o perdedor recebe a mesma mensagem.
+        with transaction.atomic():
+            entrada = Entrada.objects.create(
+                fornecedor=fornecedor,
+                numero_nota=numero_nota,
+                data_recebimento=data_recebimento,
+                empenho=empenho.strip(),
+                observacao=observacao.strip(),
+                registrado_por=usuario,
+            )
+    except IntegrityError:
+        raise duplicada from None
     materiais = travar_materiais(ids)
     total = ZERO
     for item in sorted(itens, key=lambda i: i.material_id):

@@ -1,7 +1,7 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import axios from 'axios'
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
-import { api, lerToken, salvarToken } from '../api/client'
+import { api, lerRefresh, lerToken, salvarSessao } from '../api/client'
 import type { Usuario } from '../api/types'
 import { AuthContext, type AuthState } from './contexto'
 
@@ -17,20 +17,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     retry: (tentativas, erro) => !(axios.isAxiosError(erro) && erro.response?.status === 401) && tentativas < 3,
   })
 
-  const sair = useCallback(() => {
-    salvarToken(null)
+  // Limpa a sessão local (usado também quando o servidor recusa o refresh)
+  const limpar = useCallback(() => {
+    salvarSessao(null)
     setToken(null)
     queryClient.clear()
   }, [queryClient])
 
+  // Logout pedido pelo usuário: além de limpar, invalida o refresh no servidor (blacklist)
+  const sair = useCallback(() => {
+    const refresh = lerRefresh()
+    if (refresh) api.post('/auth/logout', { refresh }).catch(() => undefined)
+    limpar()
+  }, [limpar])
+
   useEffect(() => {
-    window.addEventListener('almox:logout', sair)
-    return () => window.removeEventListener('almox:logout', sair)
-  }, [sair])
+    window.addEventListener('almox:logout', limpar)
+    return () => window.removeEventListener('almox:logout', limpar)
+  }, [limpar])
 
   const entrar = useCallback(async (email: string, senha: string) => {
     const { data } = await api.post<{ access: string; refresh: string }>('/auth/login', { email, password: senha })
-    salvarToken(data.access)
+    salvarSessao(data)
     setToken(data.access)
   }, [])
 

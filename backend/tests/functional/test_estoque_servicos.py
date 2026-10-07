@@ -156,3 +156,12 @@ def test_carga_de_demonstracao_e_coerente(db: None) -> None:
         call_command("carregar_demo")
         call_command("conferir_saldos")
     assert Movimentacao.objects.filter(tipo=TipoMovimentacao.SAIDA).exists()
+
+
+def test_trigger_do_banco_protege_o_kardex_ate_de_sql_direto(cenario: Cenario) -> None:
+    # QuerySet.update()/delete() não passam pelo save()/delete() do model: quem barra é o trigger
+    with pytest.raises(IntegrityError, match="imutável"), transaction.atomic():
+        Movimentacao.objects.update(quantidade=999)
+    with pytest.raises(IntegrityError, match="imutável"), transaction.atomic():
+        Movimentacao.objects.all()._raw_delete(using="default")
+    assert not Movimentacao.objects.filter(quantidade=999).exists()

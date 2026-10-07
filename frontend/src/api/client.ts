@@ -1,23 +1,33 @@
-import axios, { type AxiosError } from 'axios'
+import axios, { type AxiosError, type InternalAxiosRequestConfig } from 'axios'
 import type { ErroApi } from './types'
 
 export const TOKEN_KEY = 'almox.token'
+const REFRESH_KEY = 'almox.refresh'
 
-export function lerToken(): string | null {
+function ler(chave: string): string | null {
   try {
-    return localStorage.getItem(TOKEN_KEY)
+    return localStorage.getItem(chave)
   } catch {
     return null
   }
 }
 
-export function salvarToken(token: string | null): void {
+function gravar(chave: string, valor: string | null): void {
   try {
-    if (token) localStorage.setItem(TOKEN_KEY, token)
-    else localStorage.removeItem(TOKEN_KEY)
+    if (valor) localStorage.setItem(chave, valor)
+    else localStorage.removeItem(chave)
   } catch {
     /* storage indisponível: a sessão fica só em memória */
   }
+}
+
+export const lerToken = () => ler(TOKEN_KEY)
+export const lerRefresh = () => ler(REFRESH_KEY)
+
+/** Guarda (ou apaga, com null) o par de tokens da sessão. */
+export function salvarSessao(tokens: { access: string; refresh: string } | null): void {
+  gravar(TOKEN_KEY, tokens?.access ?? null)
+  gravar(REFRESH_KEY, tokens?.refresh ?? null)
 }
 
 export const api = axios.create({ baseURL: '/api' })
@@ -28,15 +38,50 @@ api.interceptors.request.use((config) => {
   return config
 })
 
+// O access dura 15 min. Quando ele expira (401), trocamos o refresh por um par novo
+// e repetimos a requisição, sem o usuário perceber. A renovação é única mesmo com
+// várias requisições falhando juntas: o refresh é rotativo e só vale uma vez.
+let renovacao: Promise<string> | null = null
+
+function renovarAcesso(): Promise<string> {
+  renovacao ??= axios
+    .post<{ access: string; refresh: string }>('/api/auth/refresh', { refresh: lerRefresh() })
+    .then(({ data }) => {
+      salvarSessao(data)
+      return data.access
+    })
+    .finally(() => {
+      renovacao = null
+    })
+  return renovacao
+}
+
+function encerrarSessao(): void {
+  salvarSessao(null)
+  window.dispatchEvent(new Event('almox:logout'))
+}
+
 api.interceptors.response.use(
   (r) => r,
-  (error: AxiosError) => {
-    // Token expirado ou usuário desativado: volta para o login
-    if (error.response?.status === 401 && !error.config?.url?.endsWith('/auth/login')) {
-      salvarToken(null)
-      window.dispatchEvent(new Event('almox:logout'))
+  async (error: AxiosError) => {
+    const original = error.config as (InternalAxiosRequestConfig & { repetida?: boolean }) | undefined
+    const expirou = error.response?.status === 401 && !original?.url?.startsWith('/auth/')
+    if (!expirou || !original) return Promise.reject(error)
+
+    // Já repetimos com token novo e ainda deu 401 (ex.: usuário desativado), ou não há refresh
+    if (original.repetida || !lerRefresh()) {
+      encerrarSessao()
+      return Promise.reject(error)
     }
-    return Promise.reject(error)
+    try {
+      const access = await renovarAcesso()
+      original.repetida = true
+      original.headers.Authorization = `Bearer ${access}`
+      return api(original)
+    } catch {
+      encerrarSessao() // refresh expirado, já usado ou revogado: volta para o login
+      return Promise.reject(error)
+    }
   },
 )
 

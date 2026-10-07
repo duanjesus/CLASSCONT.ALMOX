@@ -182,3 +182,43 @@ def test_rascunho_e_privado_do_requisitante(cenario: Cenario, api: APIClient) ->
     do_setor = api.get("/api/requisicoes", {"escopo": "setor"}).json()["results"]
     assert [r["id"] for r in do_setor] == [enviada.pk]
     assert entrar(APIClient(), cenario.ana).get(f"/api/requisicoes/{rascunho.pk}").status_code == 200
+
+
+# --- Refresh token com rotação -------------------------------------------------------
+
+
+def _login(api: APIClient) -> dict[str, str]:
+    resposta = api.post("/api/auth/login", {"email": "ana@classcont.local", "password": SENHA}, format="json")
+    return resposta.json()  # type: ignore[no-any-return]
+
+
+def test_refresh_renova_o_acesso_e_troca_o_proprio_refresh(cenario: Cenario, api: APIClient) -> None:
+    tokens = _login(api)
+    novos = api.post("/api/auth/refresh", {"refresh": tokens["refresh"]}, format="json")
+    assert novos.status_code == 200
+    assert novos.json()["refresh"] != tokens["refresh"]
+
+    api.credentials(HTTP_AUTHORIZATION=f"Bearer {novos.json()['access']}")
+    assert api.get("/api/me").status_code == 200
+
+
+def test_refresh_ja_usado_e_recusado(cenario: Cenario, api: APIClient) -> None:
+    tokens = _login(api)
+    api.post("/api/auth/refresh", {"refresh": tokens["refresh"]}, format="json")
+    # Rotação: o refresh antigo foi para a blacklist. Quem o roubou não consegue reutilizar.
+    repetido = api.post("/api/auth/refresh", {"refresh": tokens["refresh"]}, format="json")
+    assert repetido.status_code == 401
+    assert "erro" in repetido.json()
+
+
+def test_logout_invalida_o_refresh(cenario: Cenario, api: APIClient) -> None:
+    tokens = _login(api)
+    assert api.post("/api/auth/logout", {"refresh": tokens["refresh"]}, format="json").status_code == 200
+    assert api.post("/api/auth/refresh", {"refresh": tokens["refresh"]}, format="json").status_code == 401
+
+
+def test_usuario_desativado_nao_renova_o_token(cenario: Cenario, api: APIClient) -> None:
+    tokens = _login(api)
+    cenario.ana.is_active = False
+    cenario.ana.save()
+    assert api.post("/api/auth/refresh", {"refresh": tokens["refresh"]}, format="json").status_code == 401

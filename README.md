@@ -36,7 +36,7 @@ Sistema de **almoxarifado** para um órgão público: catálogo de materiais de 
 
 ---
 
-## Regras de negócio (bons tópicos de conversa)
+## Regras de negócio
 
 **Custo médio ponderado** (`dominio/custo_medio.py`)
 ```
@@ -95,85 +95,6 @@ RASCUNHO → ENVIADA → APROVADA → ATENDIDA | ATENDIDA_PARCIALMENTE
 - **Desativar um usuário corta o acesso na hora**, inclusive com um JWT já emitido: o SimpleJWT confere `is_active` a cada requisição. Usuários não são excluídos, porque há histórico ligado a eles.
 - **Força bruta:** 5 tentativas erradas por e-mail + IP a cada minuto, na API e no painel (`contas/limitador.py`).
 - API: regra de negócio → **422** com mensagem, permissão → **403**, validação → **400** com o campo (`itens[0].quantidade`). Qualquer outro erro → **500 sem detalhes internos**.
-
----
-
-## Guia de estudo: Django neste projeto
-
-### Symfony → Django (para quem veio do CLASSCONT.RHFOLHA)
-
-| Symfony | Django | Onde ver |
-|---|---|---|
-| Entity + Doctrine | `models.Model` + ORM | `estoque/models.py` |
-| Migrations (Doctrine) | `makemigrations` / `migrate` | `*/migrations/` |
-| Controller | View (função ou **class-based view**) | `painel/views/` |
-| Form Type | `forms.Form` / `ModelForm` | `painel/forms.py` |
-| Collection de forms | **Formset** (`formset_factory`) | entrada de NF: `painel/forms.py`, `templates/painel/entradas/form.html` |
-| Twig | Django Template Language | `templates/` |
-| Twig extension | **template tags e filtros** (`templatetags/`) | `painel/templatetags/almox.py` |
-| Form theme | **Form renderer** (`FORM_RENDERER`) | `painel/formularios.py`, `templates/painel/form/` |
-| Voter | funções de permissão + `BasePermission` do DRF | `requisicoes/permissoes.py`, `api/views.py` |
-| `security.yaml` firewalls | `DEFAULT_AUTHENTICATION_CLASSES` (JWT) × sessão | `config/settings.py` |
-| API Platform / serializer | **Django REST Framework** | `api/` |
-| `#[MapRequestPayload]` DTO | `Serializer` de entrada + `is_valid(raise_exception=True)` | `api/serializers.py` |
-| Event subscriber de exceção | `EXCEPTION_HANDLER` do DRF + middleware | `api/excecoes.py`, `painel/middleware.py` |
-| Console command | **management command** | `painel/management/commands/` |
-| Fixtures | comando `carregar_demo` (usa os serviços reais) | `carregar_demo.py` |
-| PHPUnit + DAMA | **pytest-django** (transação por teste) + factory_boy | `tests/` |
-| PHPStan | **mypy** + django-stubs | `pyproject.toml` |
-| PHP-CS-Fixer | **ruff** (lint + formatação) | `pyproject.toml` |
-| EasyAdmin | **Django Admin** (vem pronto) | `*/admin.py`, `/django-admin/` |
-
-### ORM e banco
-
-| Conceito | Onde ver |
-|---|---|
-| `select_related` (JOIN) × `prefetch_related` (2ª query) contra o N+1 | `api/views.py → RequisicaoViewSet.get_queryset` |
-| `select_for_update(of=("self",))` dentro de `transaction.atomic` | `requisicoes/services.py → _travar`, `estoque/services.py → travar_materiais` |
-| `transaction.on_commit` (e-mail só depois do COMMIT) | `requisicoes/services.py` |
-| `aggregate(Sum(...))`, `annotate`, `Case/When` e `F()` | `estoque/services.py → resumo_competencia`, `api/views.py → ConsumoSetorView` |
-| `Q` objects com OR e `F("requisitante")` comparando colunas | `requisicoes/services.py → pendentes_de_avaliacao` |
-| `distinct("material_id")` (DISTINCT ON do PostgreSQL) | `estoque/services.py → divergencias_de_saldo` |
-| `CheckConstraint` / `UniqueConstraint` / `Index` | `Meta` dos models em `estoque/models.py` |
-| `bulk_create` / `bulk_update` | `requisicoes/services.py` |
-| Usuário customizado (`AbstractBaseUser`, login por e-mail) | `contas/models.py` |
-| `TextChoices` geradas a partir do enum do domínio | `requisicoes/models.py → STATUS_CHOICES` |
-
-### Templates Django (o "Twig" do Python)
-
-| Conceito | Onde ver |
-|---|---|
-| Herança em 3 níveis (`extends` / `block`) | `base.html` → `painel/layout.html` → `painel/*/…html` |
-| Herdar um template **e sobrescrever só um bloco** | `painel/usuarios/lista.html` estende `painel/crud/lista.html` |
-| `include … with … only` (partial isolado) | `shared/_itens_requisicao.html`, **o mesmo partial** usado no painel e no PDF |
-| **Filtros próprios** (`moeda`, `numero`, `percentual`, `competencia`, `cnpj`, `atributo`) | `painel/templatetags/almox.py` |
-| **Inclusion tags** (as "macros": badge, cabeçalho, botão POST com CSRF, paginação, item de menu) | `almox.py` + `templates/painel/tags/` |
-| `takes_context=True` (repassar `csrf_token` e `request` para a tag) | `botao_post`, `paginacao`, `link_menu` |
-| `{% querystring %}` (Django 5.1+) mantendo os filtros na paginação | `painel/tags/paginacao.html` |
-| `{% regroup %}` (agrupar por categoria) | `painel/relatorios/reposicao.html` |
-| `{% for … empty %}`, `forloop.last`, `{% with %}`, `{% url … as var %}` | `dashboard.html`, `requisicoes/detalhe.html`, `usuarios/lista.html` |
-| Filtros nativos: `date`, `pluralize`, `yesno`, `default`, `capfirst`, `linebreaksbr`, `escapejs` | espalhados pelo painel |
-| Formset com `management_form` e `empty_form` (linhas dinâmicas) | `painel/entradas/form.html` |
-| **Form renderer**: layout de `{{ form }}` e de cada campo | `painel/formularios.py`, `templates/painel/form/` |
-| Context processor (contadores do menu) | `painel/context_processors.py` |
-| Template → **PDF** (WeasyPrint, CSS `@page`) | `templates/pdf/`, `requisicoes/pdf.py` |
-| Template → **e-mail** (texto + HTML, `EmailMultiAlternatives`) | `templates/emails/`, `requisicoes/notificacoes.py` |
-| Tailwind no template **sem Node** (binário standalone) | `assets/painel.css`, `docker/python/Dockerfile` |
-
-### Django REST Framework
-
-| Conceito | Onde ver |
-|---|---|
-| `GenericViewSet` + mixins + `@action` (`/enviar`, `/aprovar`…) | `api/views.py → RequisicaoViewSet` |
-| Router (`DefaultRouter`) | `api/urls.py` |
-| Serializer de leitura × serializer de entrada | `api/serializers.py` |
-| `BasePermission.has_object_permission` | `api/views.py → PodeVerRequisicao` |
-| Paginação (`PageNumberPagination`) | `RequisicaoViewSet.pagination_class` |
-| `django-filter` (`FilterSet` com método próprio) | `api/views.py → MaterialFiltro` |
-| JWT (SimpleJWT) com login customizado e limite de tentativas | `api/views.py → LoginView` |
-| Handler de exceção global | `api/excecoes.py` |
-| OpenAPI / Swagger (drf-spectacular) | `/api/docs` |
-| A API diz ao front **o que o usuário pode fazer** (`acoes`) | `RequisicaoDetalheSerializer.get_acoes` |
 
 ---
 
@@ -263,29 +184,28 @@ docker/python/        Dockerfile (Python 3.13, WeasyPrint, Tailwind standalone) 
 
 ---
 
-## Roteiro para a entrevista
+## Tour pelas funcionalidades
 
-### Apresentação em 1 minuto
-> "É o almoxarifado de um órgão público. Os setores pedem material pelo app React, a chefia aprova respeitando uma cota mensal, e o almoxarifado entrega pelo painel em templates Django. O estoque é valorado pelo custo médio ponderado, e todo movimento vai para um kardex imutável. Separei as regras num pacote de Python puro, testado sem banco. Os serviços cuidam de transação e concorrência, e a API e o painel são camadas finas por cima. Tem 149 testes, mypy e ruff, e roda com um `docker compose up`."
+Com os usuários de demonstração (senha `senha123`):
 
-### Demonstração em 5 minutos
 1. **App como `bruno`**: criar uma requisição com toner e papel, e enviar.
 2. **App como `chefe.ti`**: em Aprovações, reduzir uma quantidade e aprovar. A barra mostra o impacto na cota. A requisição que o próprio chefe fez (toner do gabinete) **não** aparece na lista dele, porque ela vai para o gestor.
 3. **Painel como `almoxarife`**: a fila de atendimento já traz o máximo possível preenchido. Atender, abrir a **guia em PDF**, ver o **kardex** do material e o e-mail no **Mailpit**.
 4. **App como `carla`**: a requisição dela (cerca de R$ 658) passa da cota de R$ 600 da SOF. A chefia aprovou, mas ela ficou "Aguardando gestor", com o aviso e a nota no histórico mostrando o excedente.
 5. **Painel como `gestor`**: em "Autorizações (cota)", autorizar a requisição da Carla. Depois abrir a **curva ABC** e **fechar o mês passado**. Por fim, tentar lançar uma NF com data desse mês: é bloqueado.
 
-### Perguntas prováveis (e respostas curtas)
+## Decisões de projeto
 
-- **Por que Django e não FastAPI?** Porque o sistema é CRUD administrativo com painel: ORM, migrations, admin, forms, templates e autenticação vêm prontos. O FastAPI brilha em APIs assíncronas e enxutas, mas eu teria de montar tudo isso à mão. Como as regras ficam em `dominio/`, elas iriam para um FastAPI sem mudança.
-- **Como você evita estoque negativo com dois atendimentos simultâneos?** Com `transaction.atomic` + `select_for_update` nos materiais, sempre em ordem de id para não dar deadlock, a regra pura `com_saida` que recusa saldo insuficiente e, por último, o `CHECK (quantidade_em_estoque >= 0)` no banco.
-- **Por que guardar saldo no material se o kardex já tem tudo?** Por desempenho: a listagem não precisa somar o kardex. O cache é atualizado na mesma transação, e o `conferir_saldos` audita. Se divergir, o kardex vence.
-- **O que é o N+1 e onde você tratou?** Uma query por linha ao acessar relacionamentos. Tratei com `select_related` (FK, via JOIN) e `prefetch_related` (listas, via 2ª query), por exemplo na listagem de requisições e no detalhe.
-- **Por que `on_commit` para o e-mail?** Se a transação der rollback, o e-mail não pode ter saído. Uma falha de SMTP também não derruba a operação: fica registrada no log.
-- **Por que `Decimal` e 4 casas no custo?** `float` não representa centavos com exatidão. Com 4 casas no custo unitário, o erro não se acumula a cada entrada. O valor em reais é arredondado para 2 casas (ROUND_HALF_UP).
-- **Como a chefia é definida?** É derivada de o usuário ser chefe de algum setor e não fica gravada em lugar nenhum. Trocou o chefe no cadastro, o papel acompanha na hora.
-- **Por que as funções de permissão são puras?** Para usar a mesma regra na API (403), no painel (403 e botões) e nos serviços (defesa em profundidade), e testar sem HTTP. O front recebe `acoes` e só desenha o que o back vai aceitar.
-- **Como testar sem que um teste afete o outro?** O pytest-django abre uma transação por teste e faz rollback no fim. As fábricas (factory_boy) montam o cenário, e o cache do limitador é limpo em cada teste.
+- **Django, e não FastAPI.** O sistema é um CRUD administrativo com painel: ORM, migrations, admin, forms, templates e autenticação vêm prontos. O FastAPI se sai melhor em APIs assíncronas e enxutas, mas tudo isso teria de ser montado à mão. Como as regras ficam em `dominio/`, elas iriam para um FastAPI sem mudança.
+- **Estoque nunca negativo com atendimentos simultâneos.** `transaction.atomic` + `select_for_update` nos materiais, sempre em ordem de id para não dar deadlock, a regra pura `com_saida` que recusa saldo insuficiente e, por último, o `CHECK (quantidade_em_estoque >= 0)` no banco.
+- **Saldo gravado no material, mesmo com o kardex.** Por desempenho: a listagem não precisa somar o kardex. O cache é atualizado na mesma transação, e o `conferir_saldos` audita. Se divergir, o kardex vence.
+- **N+1 tratado na origem.** `select_related` (FK, via JOIN) e `prefetch_related` (listas, via 2ª query), por exemplo na listagem e no detalhe de requisições.
+- **E-mail só no `on_commit`.** Se a transação der rollback, o e-mail não pode ter saído. Uma falha de SMTP também não derruba a operação: fica registrada no log.
+- **`Decimal` e 4 casas no custo.** `float` não representa centavos com exatidão. Com 4 casas no custo unitário, o erro não se acumula a cada entrada. O valor em reais é arredondado para 2 casas (ROUND_HALF_UP).
+- **Chefia derivada, não gravada.** O papel vem de o usuário ser chefe de algum setor. Trocou o chefe no cadastro, o papel acompanha na hora.
+- **Funções de permissão puras.** A mesma regra vale na API (403), no painel (403 e botões) e nos serviços (defesa em profundidade), e é testada sem HTTP. O front recebe `acoes` e só desenha o que o back vai aceitar.
+- **Testes isolados.** O pytest-django abre uma transação por teste e faz rollback no fim. As fábricas (factory_boy) montam o cenário, e o cache do limitador é limpo em cada teste.
 
-### O que eu faria em produção
+## O que falta para produção
+
 Gunicorn + Nginx com `collectstatic`, Redis para o cache do limitador (o `LocMemCache` é por processo), filas (Celery ou RQ) para e-mail e PDF, *refresh token* com rotação e blacklist, auditoria com `django-simple-history` nos cadastros, e trigger no banco garantindo a imutabilidade do kardex (o `save()` protege o ORM, mas não um `UPDATE` direto).
